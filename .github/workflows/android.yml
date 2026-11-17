@@ -12,7 +12,14 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-java@v4
         with: { distribution: temurin, java-version: 17 }
+      - name: Llave de firma fija (secreto del repo; sin ella se usa la de depuración)
+        env: { KS_B64: '${{ secrets.JSE_KEYSTORE_B64 }}' }
+        run: |
+          if [ -n "$KS_B64" ]; then echo "$KS_B64" | base64 -d > "$RUNNER_TEMP/jse.jks"; echo "JSE_KEYSTORE=$RUNNER_TEMP/jse.jks" >> "$GITHUB_ENV"; else echo "::warning::Sin JSE_KEYSTORE_B64: APK firmado con llave de depuración temporal"; fi
       - name: Compilar APK
+        env:
+          JSE_KEYSTORE_PASS: ${{ secrets.JSE_KEYSTORE_PASS }}
+          JSE_KEY_ALIAS: jse
         run: ./gradlew --no-daemon assembleRelease
       - name: Nombre del APK
         run: cp app/build/outputs/apk/release/app-release.apk "JSE-Captura-Android-$(grep versionName app/build.gradle.kts | sed 's/.*"\(.*\)".*/\1/').apk"
