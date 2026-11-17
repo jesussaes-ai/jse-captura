@@ -50,7 +50,7 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         aj = Ajustes(this)
         val c = this
-        val raiz = Ui.columna(c).apply { setPadding(Ui.dp(c, 16), Ui.dp(c, 16), Ui.dp(c, 16), 0) }
+        val raiz = Ui.columna(c).apply { setPadding(Ui.dp(c, 16), Ui.dp(c, 4), Ui.dp(c, 16), 0) }
 
         raiz.addView(Ui.fila(c, Ui.texto(c, "● JSE Captura", 20f, Ui.ROJO, true),
             Ui.boton(c, "NAS") { startActivity(Intent(c, NasActivity::class.java)) },
@@ -87,7 +87,7 @@ class MainActivity : AppCompatActivity() {
         fPend = CheckBox(c).apply { text = "Pendientes"; setTextColor(Ui.TEXTO); setOnCheckedChangeListener { _, _ -> refrescar() } }
         fFav = CheckBox(c).apply { text = "★ Favoritos"; setTextColor(Ui.TEXTO); setOnCheckedChangeListener { _, _ -> refrescar() } }
         raiz.addView(buscar)
-        raiz.addView(Ui.fila(c, fPend, fFav, Ui.boton(c, "⟳ Sincronizar ahora") { Sincronizar.forzar(c); estado.text = "Sincronizando…" }))
+        raiz.addView(Ui.fila(c, fPend, fFav, Ui.boton(c, "⟳ Sincronizar") { Sincronizar.forzar(c); estado.text = "Sincronizando…" }))
         vacio = Ui.texto(c, "Aún no hay grabaciones. Toca Grabar, o usa el mosaico «JSE Captura» de Ajustes rápidos para grabar desde cualquier app.", 14f, Ui.SUTIL)
         raiz.addView(vacio)
         lista = RecyclerView(c).apply { layoutManager = LinearLayoutManager(c); adapter = adaptador }

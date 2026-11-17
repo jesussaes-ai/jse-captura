@@ -11,8 +11,8 @@ android {
         applicationId = "mx.jse.captura"
         minSdk = 29          // Android 10: MediaProjection en servicio de primer plano y captura de audio interno
         targetSdk = 35
-        versionCode = 3
-        versionName = "0.1.2"
+        versionCode = 4
+        versionName = "0.1.3"
     }
 
     signingConfigs {
@@ -40,6 +40,8 @@ android {
     }
     kotlinOptions { jvmTarget = "17" }
     buildFeatures { buildConfig = true }
+    // "Inspector": Android Lint corre en CI y detiene la entrega si encuentra errores.
+    lint { abortOnError = true; checkReleaseBuilds = false; htmlReport = true }
 }
 
 dependencies {

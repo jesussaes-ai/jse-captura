@@ -54,11 +54,27 @@ object Ui {
         hijos.forEach { addView(it, LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT).apply { marginEnd = dp(ctx, 8) }) }
     }
 
-    /** Envuelve la pantalla y pone la versión arriba a la derecha (regla de Jesús: en todas las pantallas). */
-    fun conVersion(ctx: Context, contenido: android.view.View): android.view.View = android.widget.FrameLayout(ctx).apply {
-        addView(contenido, android.widget.FrameLayout.LayoutParams(android.view.ViewGroup.LayoutParams.MATCH_PARENT, android.view.ViewGroup.LayoutParams.MATCH_PARENT))
-        addView(TextView(ctx).apply { text = "v${BuildConfig.VERSION_NAME}"; textSize = 11f; setTextColor(SUTIL); setPadding(dp(ctx, 6), dp(ctx, 4), dp(ctx, 8), dp(ctx, 4)) },
-            android.widget.FrameLayout.LayoutParams(android.view.ViewGroup.LayoutParams.WRAP_CONTENT, android.view.ViewGroup.LayoutParams.WRAP_CONTENT, android.view.Gravity.TOP or android.view.Gravity.END))
+    /**
+     * Envuelve cada pantalla: respeta la barra de estado, el recorte de la cámara y la barra de navegación
+     * (Android 15 dibuja la app de borde a borde) y pone la versión arriba a la derecha, en su propio renglón
+     * para que nunca tape botones (regla de Jesús: versión visible en todas las pantallas).
+     */
+    fun conVersion(ctx: Context, contenido: View): View = LinearLayout(ctx).apply {
+        orientation = LinearLayout.VERTICAL
+        addView(TextView(ctx).apply {
+            text = "v${BuildConfig.VERSION_NAME}"; textSize = 12f; setTextColor(SUTIL); gravity = Gravity.END
+            setPadding(dp(ctx, 16), dp(ctx, 6), dp(ctx, 16), 0); tag = "version"
+        }, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT))
+        addView(contenido, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f))
+        setOnApplyWindowInsetsListener { v, ins ->
+            if (android.os.Build.VERSION.SDK_INT >= 30) {
+                val m = ins.getInsets(android.view.WindowInsets.Type.systemBars() or android.view.WindowInsets.Type.displayCutout())
+                v.setPadding(m.left, m.top + dp(ctx, 8), m.right, m.bottom)
+            } else {
+                @Suppress("DEPRECATION") v.setPadding(ins.systemWindowInsetLeft, ins.systemWindowInsetTop + dp(ctx, 8), ins.systemWindowInsetRight, ins.systemWindowInsetBottom)
+            }
+            ins
+        }
     }
 
     fun columna(ctx: Context) = LinearLayout(ctx).apply { orientation = LinearLayout.VERTICAL }

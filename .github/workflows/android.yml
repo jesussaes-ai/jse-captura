@@ -16,6 +16,11 @@ jobs:
         env: { KS_B64: '${{ secrets.JSE_KEYSTORE_B64 }}' }
         run: |
           if [ -n "$KS_B64" ]; then echo "$KS_B64" | base64 -d > "$RUNNER_TEMP/jse.jks"; echo "JSE_KEYSTORE=$RUNNER_TEMP/jse.jks" >> "$GITHUB_ENV"; else echo "::warning::Sin JSE_KEYSTORE_B64: APK firmado con llave de depuración temporal"; fi
+      - name: Inspector (Android Lint)
+        run: ./gradlew --no-daemon lintDebug
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with: { name: lint-android, path: android/app/build/reports/lint-results-debug.html, retention-days: 14 }
       - name: Compilar APK
         env:
           JSE_KEYSTORE_PASS: ${{ secrets.JSE_KEYSTORE_PASS }}
@@ -28,3 +33,26 @@ jobs:
           name: JSE-Captura-Android
           path: android/JSE-Captura-Android-*.apk
           retention-days: 30
+
+  pantalla:
+    # Prueba real en un emulador Android 15: abre la app, revisa que la versión se vea y que nada quede bajo la barra de estado.
+    needs: apk
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with: { name: JSE-Captura-Android, path: apk }
+      - name: KVM
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules && sudo udevadm trigger --name-match=kvm
+      - uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 35
+          target: google_apis
+          arch: x86_64
+          disable-animations: true
+          script: bash .github/scripts/prueba-pantalla.sh apk
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with: { name: pantallas-android, path: pantallas, retention-days: 14 }
