@@ -1,0 +1,6 @@
+*.xcodeproj
+JSECaptura/Info.plist
+Transmision/Info.plist
+*.entitlements
+build/
+DerivedData/

@@ -1,0 +1,55 @@
+# Proyecto de Xcode generado con XcodeGen:  brew install xcodegen && xcodegen generate
+name: JSECaptura
+options:
+  bundleIdPrefix: mx.jse
+  deploymentTarget: { iOS: "16.0" }
+  developmentLanguage: es
+settings:
+  base:
+    SWIFT_VERSION: "5.9"
+    DEVELOPMENT_TEAM: ""          # pon aquí tu Team ID de Apple para firmar
+    CODE_SIGN_STYLE: Automatic
+    MARKETING_VERSION: "0.1.0"
+    CURRENT_PROJECT_VERSION: "1"
+targets:
+  JSECaptura:
+    type: application
+    platform: iOS
+    sources: [JSECaptura]
+    info:
+      path: JSECaptura/Info.plist
+      properties:
+        CFBundleDisplayName: JSE Captura
+        CFBundleDevelopmentRegion: es
+        UILaunchScreen: {}
+        UISupportedInterfaceOrientations: [UIInterfaceOrientationPortrait, UIInterfaceOrientationLandscapeLeft, UIInterfaceOrientationLandscapeRight]
+        NSPhotoLibraryAddUsageDescription: "JSE Captura guarda tus grabaciones de pantalla en Fotos solo cuando tú lo pides."
+        NSPhotoLibraryUsageDescription: "Para importar las grabaciones que hiciste desde el Centro de control."
+        NSMicrophoneUsageDescription: "Para grabar tu voz junto con la pantalla, solo si activas el micrófono."
+        NSLocalNetworkUsageDescription: "Para copiar las grabaciones a tu NAS en la red de casa."
+        NSAppTransportSecurity: { NSAllowsLocalNetworking: true, NSAllowsArbitraryLoads: true }
+        UIFileSharingEnabled: true
+        LSSupportsOpeningDocumentsInPlace: true
+    entitlements:
+      path: JSECaptura/JSECaptura.entitlements
+      properties:
+        com.apple.security.application-groups: [group.mx.jse.captura]
+    dependencies:
+      - target: Transmision
+        embed: true
+  Transmision:
+    type: app-extension
+    platform: iOS
+    sources: [Transmision]
+    info:
+      path: Transmision/Info.plist
+      properties:
+        CFBundleDisplayName: JSE Captura
+        NSExtension:
+          NSExtensionPointIdentifier: com.apple.broadcast-services-upload
+          NSExtensionPrincipalClass: $(PRODUCT_MODULE_NAME).ManejadorTransmision
+          RPBroadcastProcessMode: RPBroadcastProcessModeSampleBuffer
+    entitlements:
+      path: Transmision/Transmision.entitlements
+      properties:
+        com.apple.security.application-groups: [group.mx.jse.captura]

@@ -74,7 +74,8 @@ export function crearServicio(cfg, opciones = {}) {
   const servidor = http.createServer(async (req, res) => {
     const url = new URL(req.url, 'http://local');
     const p = url.pathname;
-    const m = req.method;
+    // Android (HttpURLConnection) no envía PATCH: lo manda como POST con X-HTTP-Method-Override.
+    const m = req.method === 'POST' && String(req.headers['x-http-method-override'] || '').toUpperCase() === 'PATCH' ? 'PATCH' : req.method;
     const ip = req.socket.remoteAddress || '';
     try {
       // ---------- sin autenticación ----------

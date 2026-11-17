@@ -1,0 +1,26 @@
+name: iOS · compilación
+on:
+  push:
+    paths: ['ios/**', '.github/workflows/ios.yml']
+  workflow_dispatch:
+jobs:
+  simulador:
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+      - name: XcodeGen
+        run: brew install xcodegen && cd ios && xcodegen generate
+      - name: Compilar para el simulador (sin firma)
+        run: |
+          cd ios
+          xcodebuild -project JSECaptura.xcodeproj -scheme JSECaptura -sdk iphonesimulator \
+            -destination 'generic/platform=iOS Simulator' -configuration Debug \
+            CODE_SIGNING_ALLOWED=NO build | tail -40
+          test "${PIPESTATUS[0]}" = 0
+      - name: Compilar para iPhone (sin firma, para comprobar el SDK de dispositivo)
+        run: |
+          cd ios
+          xcodebuild -project JSECaptura.xcodeproj -scheme JSECaptura -sdk iphoneos \
+            -destination 'generic/platform=iOS' -configuration Release \
+            CODE_SIGNING_ALLOWED=NO build | tail -40
+          test "${PIPESTATUS[0]}" = 0

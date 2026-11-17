@@ -242,3 +242,10 @@ test('token revocado deja de ver el catálogo', async () => {
   const r2 = await fetch(`${base}/api/v1/grabaciones`, { headers: { Authorization: `Bearer ${otro.token}` } });
   assert.equal(r2.status, 401);
 });
+
+test('Android: POST con X-HTTP-Method-Override: PATCH sube igual que PATCH', async () => {
+  const s = nuevaSubida({ titulo: 'Desde Android' });
+  assert.equal((await api('/api/v1/subidas', { method: 'POST', body: s })).status, 201);
+  const r = await api(`/api/v1/subidas/${s.id}`, { method: 'POST', body: datos, headers: { 'X-HTTP-Method-Override': 'PATCH', 'Upload-Offset': '0', 'Content-Type': 'application/offset+octet-stream' } });
+  assert.equal(r.json.estado, 'guardado');
+});
