@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="fondo">#101418</color>
+    <color name="panel">#181E24</color>
+    <color name="rojo">#FF3B30</color>
+    <color name="texto">#E8EDF2</color>
+    <color name="sutil">#94A1AE</color>
+    <style name="Tema" parent="Theme.AppCompat.NoActionBar">
+        <item name="android:windowBackground">@color/fondo</item>
+        <item name="android:textColor">@color/texto</item>
+        <item name="android:textColorSecondary">@color/sutil</item>
+        <item name="colorAccent">@color/rojo</item>
+        <item name="colorPrimary">@color/fondo</item>
+        <item name="android:statusBarColor">@color/fondo</item>
+        <item name="android:navigationBarColor">@color/fondo</item>
+    </style>
+    <style name="Tema.Transparente" parent="Theme.AppCompat.NoActionBar">
+        <item name="android:windowIsTranslucent">true</item>
+        <item name="android:windowBackground">@android:color/transparent</item>
+        <item name="android:windowNoTitle">true</item>
+        <item name="android:backgroundDimEnabled">false</item>
+    </style>
+</resources>

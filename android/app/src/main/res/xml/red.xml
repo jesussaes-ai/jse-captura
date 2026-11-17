@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- El NAS está en la red local (HTTP o HTTPS con certificado propio). Se confía en los certificados
+     del sistema y en los que el usuario instale (CA local del NAS, ver guía). Nada se envía a Internet. -->
+<network-security-config>
+    <base-config cleartextTrafficPermitted="true">
+        <trust-anchors>
+            <certificates src="system" />
+            <certificates src="user" />
+        </trust-anchors>
+    </base-config>
+</network-security-config>

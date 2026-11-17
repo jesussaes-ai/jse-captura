@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <!-- Android 14+: tipo de servicio para la captura de pantalla -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PROJECTION" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MICROPHONE" />
+    <!-- Solo se pide cuando el usuario activa el micrófono o el audio interno -->
+    <uses-permission android:name="android.permission.RECORD_AUDIO" />
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <!-- Galería en Android 10-12 sin permisos extra (MediaStore con IS_PENDING); nada de almacenamiento amplio -->
+
+    <application
+        android:name=".App"
+        android:allowBackup="false"
+        android:icon="@drawable/ic_app"
+        android:label="JSE Captura"
+        android:networkSecurityConfig="@xml/red"
+        android:supportsRtl="true"
+        android:theme="@style/Tema">
+
+        <activity
+            android:name=".MainActivity"
+            android:exported="true"
+            android:launchMode="singleTask">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+
+        <activity android:name=".ReproductorActivity" android:exported="false"
+            android:configChanges="orientation|screenSize|screenLayout|keyboardHidden" />
+        <activity android:name=".AjustesActivity" android:exported="false" />
+        <activity android:name=".NasActivity" android:exported="false" />
+        <!-- Transparente: pide el consentimiento de captura del sistema (también desde el mosaico y la notificación) -->
+        <activity android:name=".PermisoCapturaActivity" android:exported="false"
+            android:theme="@style/Tema.Transparente" android:excludeFromRecents="true" android:noHistory="true" />
+
+        <service
+            android:name=".CapturaService"
+            android:exported="false"
+            android:foregroundServiceType="mediaProjection|microphone" />
+
+        <!-- Mosaico de Ajustes rápidos: grabar / detener desde cualquier app -->
+        <service
+            android:name=".MosaicoService"
+            android:exported="true"
+            android:icon="@drawable/ic_rec"
+            android:label="JSE Captura"
+            android:permission="android.permission.BIND_QUICK_SETTINGS_TILE">
+            <intent-filter>
+                <action android:name="android.service.quicksettings.action.QS_TILE" />
+            </intent-filter>
+        </service>
+
+        <provider
+            android:name="androidx.core.content.FileProvider"
+            android:authorities="mx.jse.captura.archivos"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data android:name="android.support.FILE_PROVIDER_PATHS" android:resource="@xml/rutas" />
+        </provider>
+    </application>
+</manifest>
