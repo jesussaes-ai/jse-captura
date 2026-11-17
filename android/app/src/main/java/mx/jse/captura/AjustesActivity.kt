@@ -22,7 +22,7 @@ class AjustesActivity : AppCompatActivity() {
             if (clave) inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_PASSWORD
         }
         col.addView(Ui.texto(c, "NAS UGREEN", 18f, Ui.TEXTO, true))
-        val dir = campo("Dirección local: 192.168.100.249:8790 o https://nas.tu-tailnet.ts.net:8790", aj.direccion)
+        val dir = campo("Dirección local: 192.168.1.50:8790 o https://nas.tu-tailnet.ts.net:8790", aj.direccion)
         val usu = campo("Usuario de servicio", aj.usuario)
         val con = campo("Contraseña (solo para vincular; no se guarda)", "", true)
         val estado = Ui.texto(c, if (aj.token != null) "✓ Teléfono vinculado (token cifrado en el Keystore)" else "Sin vincular", 13f, Ui.SUTIL)

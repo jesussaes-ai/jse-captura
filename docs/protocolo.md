@@ -54,7 +54,7 @@ al arrancar se completa el catálogo verificando el hash.
 ## Pruebas con curl
 
 ```bash
-NAS=http://192.168.100.249:8790
+NAS=http://192.168.1.50:8790
 curl $NAS/api/v1/salud
 TOKEN=$(curl -s -X POST $NAS/api/v1/sesion -H 'Content-Type: application/json' \
   -d '{"usuario":"jse-captura","contrasena":"…","equipo":"curl"}' | jq -r .token)
