@@ -59,10 +59,11 @@ class MainActivity : AppCompatActivity() {
         // ---- grabar ----
         val calidad = RadioGroup(c).apply {
             orientation = RadioGroup.HORIZONTAL
-            addView(RadioButton(c).apply { id = 1080; text = "Hasta 1080p"; setTextColor(Ui.TEXTO) })
-            addView(RadioButton(c).apply { id = 720; text = "720p (ahorra espacio)"; setTextColor(Ui.TEXTO) })
-            check(if (aj.calidad == "720") 720 else 1080)
-            setOnCheckedChangeListener { _, id -> aj.calidad = id.toString(); pintarResumen() }
+            val r1080 = RadioButton(c).apply { id = View.generateViewId(); text = "Hasta 1080p"; setTextColor(Ui.TEXTO) }
+            val r720 = RadioButton(c).apply { id = View.generateViewId(); text = "720p (ahorra espacio)"; setTextColor(Ui.TEXTO) }
+            addView(r1080); addView(r720)
+            check(if (aj.calidad == "720") r720.id else r1080.id)
+            setOnCheckedChangeListener { _, id -> aj.calidad = if (id == r720.id) "720" else "1080"; pintarResumen() }
         }
         val mic = CheckBox(c).apply { text = "Micrófono"; setTextColor(Ui.TEXTO); isChecked = aj.microfono
             setOnCheckedChangeListener { _, v -> aj.microfono = v; if (v) pedirAudio(); pintarResumen() } }

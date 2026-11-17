@@ -41,7 +41,7 @@ android {
     kotlinOptions { jvmTarget = "17" }
     buildFeatures { buildConfig = true }
     // "Inspector": Android Lint corre en CI y detiene la entrega si encuentra errores.
-    lint { abortOnError = true; checkReleaseBuilds = false; htmlReport = true }
+    lint { abortOnError = true; checkReleaseBuilds = false; htmlReport = true; textReport = true; textOutput = file("stdout"); explainIssues = false }
 }
 
 dependencies {
