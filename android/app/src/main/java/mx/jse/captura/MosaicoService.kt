@@ -17,6 +17,8 @@ class MosaicoService : TileService() {
         }
     }
 
+    // En 34+ se usa la versión con PendingIntent; la de Intent solo corre en Android 10–13 (donde es la única).
+    @android.annotation.SuppressLint("StartActivityAndCollapseDeprecated")
     override fun onClick() {
         if (CapturaService.activo) { CapturaService.detener(this); return }
         val i = Intent(this, PermisoCapturaActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
