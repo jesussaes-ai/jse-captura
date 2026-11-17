@@ -97,7 +97,8 @@ object Medios {
             while (true) {
                 val n = ex.readSampleData(buf, 0)
                 if (n < 0) break
-                val pista = mapa[ex.sampleTrackIndex] ?: run { ex.advance(); continue }
+                val pista = mapa[ex.sampleTrackIndex]
+                if (pista == null) { ex.advance(); continue }
                 if (base < 0) base = ex.sampleTime
                 val pts = (ex.sampleTime - base).coerceAtLeast(0) + desplazamiento
                 maxPts = maxOf(maxPts, pts)
