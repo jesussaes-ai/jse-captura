@@ -20,7 +20,7 @@ jobs:
           echo "$(dirname "$(node -p "require('ffmpeg-static')")")" >> $GITHUB_PATH
           echo "$(dirname "$(node -p "require('ffprobe-static').path")")" >> $GITHUB_PATH
       - name: Pruebas del núcleo (contra el servicio NAS real)
-        run: node --test test/
+        run: node --test test/nucleo.test.js
       - name: Prueba de humo con la app real (captura de pantalla con Playwright)
         shell: bash
         run: |
