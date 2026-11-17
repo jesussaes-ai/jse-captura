@@ -92,4 +92,4 @@ Leyenda: ✅ verificado · 🧪 implementado, falta probar en el equipo real · 
 | Ver catálogo del NAS / enlace para VLC | 🧪 | 🧪 | 🧪 | ✅ |
 | Borrar del equipo / borrar del NAS por separado | 🧪 | 🧪 | 🧪 | ✅ |
 | Recortar (MP4 nuevo) | 🧪 | 🧪 | 🧪 | — |
-| Instalador / paquete | ✅ (generado en Actions) | ✅ APK (Actions) | ⏳ necesita Mac + Apple ID | ✅ Docker en CI · ⏳ en tu UGREEN |
+| Instalador / paquete | ✅ (generado en Actions) | ✅ APK (Actions) | ✅ compila en Actions · ⏳ instalar necesita Mac + Apple ID | ✅ Docker en CI · ⏳ en tu UGREEN |
