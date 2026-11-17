@@ -33,8 +33,10 @@ const PREDETERMINADOS = {
   carpetaLocal: null,
   calidad: '1080', // 1080 | 720
   fps: 30,
-  microfono: false,
-  audioSistema: false,
+  // Audio encendido por defecto (un video sin audio no sirve); se puede apagar en la pantalla principal.
+  microfono: true,
+  audioSistema: true,
+  versionAjustes: 2,
   atajo: 'CommandOrControl+Shift+R',
   atajoMarca: 'CommandOrControl+Shift+M',
   modo: 'servicio', // servicio | smb | ninguno
@@ -47,7 +49,10 @@ const PREDETERMINADOS = {
 let ajustes = { ...PREDETERMINADOS };
 function cargarAjustes() {
   try {
-    ajustes = { ...PREDETERMINADOS, ...JSON.parse(fs.readFileSync(RUTA_AJUSTES(), 'utf8')) };
+    const guardados = JSON.parse(fs.readFileSync(RUTA_AJUSTES(), 'utf8'));
+    // v0.1.0 guardaba el audio apagado por defecto: al actualizar se enciende una vez; después manda lo que elija el usuario.
+    if ((guardados.versionAjustes || 1) < 2) Object.assign(guardados, { microfono: true, audioSistema: true, versionAjustes: 2 });
+    ajustes = { ...PREDETERMINADOS, ...guardados };
   } catch {}
   if (!ajustes.carpetaLocal) ajustes.carpetaLocal = path.join(app.getPath('videos'), 'JSE Captura');
 }

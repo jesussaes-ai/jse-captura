@@ -15,8 +15,8 @@ class Ajustes(ctx: Context) {
     private val p = ctx.getSharedPreferences("ajustes", Context.MODE_PRIVATE)
 
     var calidad: String get() = p.getString("calidad", "1080")!!; set(v) = p.edit().putString("calidad", v).apply()
-    var microfono: Boolean get() = p.getBoolean("microfono", false); set(v) = p.edit().putBoolean("microfono", v).apply()
-    var audioInterno: Boolean get() = p.getBoolean("audioInterno", false); set(v) = p.edit().putBoolean("audioInterno", v).apply()
+    var microfono: Boolean get() = p.getBoolean("microfono", true); set(v) = p.edit().putBoolean("microfono", v).apply()
+    var audioInterno: Boolean get() = p.getBoolean("audioInterno", true); set(v) = p.edit().putBoolean("audioInterno", v).apply()
     var galeria: Boolean get() = p.getBoolean("galeria", false); set(v) = p.edit().putBoolean("galeria", v).apply()
     var direccion: String get() = p.getString("direccion", "")!!; set(v) = p.edit().putString("direccion", v).apply()
     var usuario: String get() = p.getString("usuario", "jse-captura")!!; set(v) = p.edit().putString("usuario", v).apply()

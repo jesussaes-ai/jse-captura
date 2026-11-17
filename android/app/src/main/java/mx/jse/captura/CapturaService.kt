@@ -59,6 +59,8 @@ class CapturaService : Service() {
     private var creadoLocal = ""
     private val marcas = mutableListOf<Marca>()
     private var deteniendo = false
+    private var mic = false
+    private var interno = false
     private val manejador = Handler(Looper.getMainLooper())
     private val vigilarEspacio = object : Runnable {
         override fun run() {
@@ -88,9 +90,13 @@ class CapturaService : Service() {
     private fun iniciar(intent: Intent) {
         if (activo) return
         val aj = Ajustes(this)
+        // Audio encendido por defecto, pero solo si Android dio el permiso (sin él, el tipo "micrófono" haría fallar el servicio).
+        val permisoAudio = checkSelfPermission(android.Manifest.permission.RECORD_AUDIO) == android.content.pm.PackageManager.PERMISSION_GRANTED
+        mic = aj.microfono && permisoAudio
+        interno = aj.audioInterno && permisoAudio
         // Primero el aviso persistente (obligatorio antes de obtener la proyección en Android 10+).
         val tipos = ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PROJECTION or
-            (if (aj.microfono) ServiceInfo.FOREGROUND_SERVICE_TYPE_MICROPHONE else 0)
+            (if (mic) ServiceInfo.FOREGROUND_SERVICE_TYPE_MICROPHONE else 0)
         startForeground(NOTI, notificacion("Preparando…"), tipos)
 
         val mpm = getSystemService(MediaProjectionManager::class.java)
@@ -130,7 +136,7 @@ class CapturaService : Service() {
             pararServicio(); return
         }
         try {
-            cod = Codificador(sesion!!, w, h, if (aj.calidad == "720") 4_000_000 else 8_000_000, p, aj.microfono, aj.audioInterno).also { it.iniciar() }
+            cod = Codificador(sesion!!, w, h, if (aj.calidad == "720") 4_000_000 else 8_000_000, p, mic, interno).also { it.iniciar() }
             pantalla = p.createVirtualDisplay("JSE Captura", w, h, m.densityDpi, DisplayManager.VIRTUAL_DISPLAY_FLAG_AUTO_MIRROR, cod!!.superficie, null, manejador)
         } catch (e: Exception) {
             ultimoError = "No se pudo iniciar el codificador de video: ${e.message}"
@@ -153,7 +159,7 @@ class CapturaService : Service() {
         val j = JSONObject().put("id", id).put("creado", creado).put("creadoLocal", creadoLocal)
             .put("titulo", "Grabación ${creadoLocal.replace('T', ' ').take(16)}")
             .put("origen", "Android · ${Build.MANUFACTURER} ${Build.MODEL} · pantalla completa")
-            .put("audio", listOfNotNull(if (aj.microfono) "micrófono" else null, if (aj.audioInterno) "audio interno" else null).joinToString(" + ").ifEmpty { "sin audio" })
+            .put("audio", listOfNotNull(if (mic) "micrófono" else null, if (interno) "audio interno" else null).joinToString(" + ").ifEmpty { "sin audio" })
             .put("marcas", JSONArray(marcas.map { JSONObject().put("t", it.t).put("nota", it.nota) }))
         File(sesion, "sesion.json").writeText(j.toString())
     }
