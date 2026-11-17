@@ -39,15 +39,18 @@
       "output": "dist"
     },
     "win": {
-      "icon": "recursos/icono.png",
-      "artifactName": "JSE-Captura-${version}-${arch}-${target}.${ext}"
+      "icon": "recursos/icono.png"
     },
     "nsis": {
       "oneClick": false,
       "perMachine": false,
       "allowToChangeInstallationDirectory": true,
       "shortcutName": "JSE Captura",
-      "language": "3082"
+      "language": "3082",
+      "artifactName": "JSE-Captura-Instalador-${version}.${ext}"
+    },
+    "portable": {
+      "artifactName": "JSE-Captura-Portatil-${version}.${ext}"
     }
   }
 }
