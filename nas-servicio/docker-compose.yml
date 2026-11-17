@@ -1,0 +1,26 @@
+# JSE Captura · servicio del NAS UGREEN (DXP4800 Pro).
+# Instalar: copia esta carpeta a  personal_folder/Apps/jse-captura/  (o donde guardes tus proyectos de Docker),
+# copia .env.ejemplo a .env, pon una contraseña y crea el proyecto en Docker de UGOS (o `docker compose up -d --build`).
+#
+# Seguridad: el puerto se publica SOLO en la IP local del NAS (JSE_IP_LAN). No abras ni redirijas este puerto
+# en el router. Fuera de casa se usa Tailscale (el NAS ya está en tu tailnet).
+services:
+  jse-captura:
+    build: .
+    image: jse-captura-nas:0.1.0
+    container_name: jse-captura-nas
+    user: "${PUID:-1000}:${PGID:-10}"
+    env_file: .env
+    environment:
+      - JSE_DATOS=/datos
+      - JSE_GRABACIONES=/grabaciones
+      - TZ=America/Mexico_City
+    ports:
+      - "${JSE_IP_LAN:-127.0.0.1}:8790:8790"
+    volumes:
+      # Catálogo, tokens (hash) y miniaturas.
+      - ./datos:/datos
+      # Donde quedan los MP4. Recomendado: dentro de la biblioteca de Fotos JSE para que la galería
+      # los muestre sin copiarlos dos veces (ver LEEME.md). La carpeta debe existir en el NAS.
+      - ${JSE_CARPETA_NAS:-./grabaciones}:/grabaciones
+    restart: unless-stopped

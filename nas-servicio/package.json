@@ -1,0 +1,12 @@
+{
+  "name": "jse-captura-nas",
+  "version": "0.1.0",
+  "description": "Servicio local para recibir las grabaciones de JSE Captura en el NAS UGREEN",
+  "type": "module",
+  "private": true,
+  "engines": { "node": ">=22" },
+  "scripts": {
+    "start": "node src/main.mjs",
+    "test": "node --test test/*.test.mjs"
+  }
+}
