@@ -1,0 +1,52 @@
+name: Windows · pruebas e instalador
+on:
+  push:
+    branches: [main]
+    paths: ['escritorio/**', 'nas-servicio/**', '.github/workflows/windows.yml']
+  workflow_dispatch:
+jobs:
+  windows:
+    runs-on: windows-latest
+    defaults: { run: { working-directory: escritorio } }
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22 }
+      - run: npm ci || npm install
+      # ffmpeg/ffprobe incluidos en la app; para las pruebas se ponen en el PATH.
+      - name: ffmpeg en el PATH
+        shell: bash
+        run: |
+          echo "$(dirname "$(node -p "require('ffmpeg-static')")")" >> $GITHUB_PATH
+          echo "$(dirname "$(node -p "require('ffprobe-static').path")")" >> $GITHUB_PATH
+      - name: Pruebas del núcleo (contra el servicio NAS real)
+        run: node --test test/
+      - name: Prueba de humo con la app real (captura de pantalla con Playwright)
+        shell: bash
+        run: |
+          npm i --no-save playwright@1.56.1
+          HUMO_DIR="$RUNNER_TEMP" node test/e2e/humo.mjs
+      - name: Instalador y versión portátil
+        run: npx electron-builder --win nsis portable --x64 --publish never
+      - uses: actions/upload-artifact@v4
+        with:
+          name: JSE-Captura-Windows
+          path: |
+            escritorio/dist/*.exe
+          retention-days: 30
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: capturas-prueba-humo
+          path: ${{ runner.temp }}/jse-humo-*/*.png
+          if-no-files-found: ignore
+  nas:
+    runs-on: ubuntu-latest
+    defaults: { run: { working-directory: nas-servicio } }
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22 }
+      - run: sudo apt-get update && sudo apt-get install -y ffmpeg
+      - run: node --test test/*.test.mjs
+      - run: docker build -t jse-captura-nas .

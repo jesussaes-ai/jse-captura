@@ -1,0 +1,15 @@
+<!doctype html>
+<html lang="es"><head><meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline'; script-src 'self'">
+<title>JSE Captura · grabando</title>
+<style>
+  html,body{margin:0;height:100%;background:#1a1f24;color:#fff;font:600 14px "Segoe UI",system-ui,sans-serif;-webkit-app-region:drag;user-select:none}
+  .b{display:flex;align-items:center;gap:8px;height:100%;padding:0 10px}
+  .p{width:10px;height:10px;border-radius:50%;background:#ff3b30;animation:l 1s infinite}
+  @keyframes l{50%{opacity:.25}}
+  button{-webkit-app-region:no-drag;border:0;border-radius:6px;padding:6px 10px;font:inherit;cursor:pointer}
+  .m{background:#2c333a;color:#fff}.d{background:#ff3b30;color:#fff;margin-left:auto}
+</style></head>
+<body><div class="b"><span class="p"></span><span id="t">00:00</span>
+<button class="m" id="m" title="Marcar momento">⚑</button><button class="d" id="d" title="Detener">■ Detener</button></div>
+<script src="indicador.js"></script></body></html>

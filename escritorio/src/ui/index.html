@@ -1,0 +1,168 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; img-src 'self' data: file:; media-src 'self' file: blob: http: https:; style-src 'self' 'unsafe-inline'; script-src 'self'">
+  <title>JSE Captura</title>
+  <link rel="stylesheet" href="estilos.css">
+</head>
+<body>
+  <header>
+    <div class="marca">● JSE Captura</div>
+    <nav>
+      <button data-vista="grabar" class="activo">Grabar</button>
+      <button data-vista="biblioteca">Biblioteca <span id="contador-pendientes" class="globo" hidden></span></button>
+      <button data-vista="nas">NAS</button>
+      <button data-vista="ajustes">Ajustes</button>
+    </nav>
+    <div id="estado-red" class="estado-red" title="Estado del NAS"></div>
+  </header>
+
+  <div id="aviso" class="aviso" hidden></div>
+
+  <!-- ===== Grabar ===== -->
+  <main id="vista-grabar" class="vista">
+    <section id="panel-grabando" class="grabando" hidden>
+      <div class="rec">● REC <span id="tiempo">00:00</span></div>
+      <div id="grabando-fuente" class="sutil"></div>
+      <div class="fila">
+        <button id="btn-marcar" class="secundario">⚑ Marcar momento</button>
+        <button id="btn-detener" class="peligro">■ Detener</button>
+      </div>
+      <p class="sutil" id="como-detener"></p>
+    </section>
+
+    <section id="panel-procesando" hidden>
+      <h2>Guardando el MP4…</h2>
+      <progress id="prog-procesando" max="1" value="0"></progress>
+    </section>
+
+    <section id="panel-elegir">
+      <div class="fila entre">
+        <h2>¿Qué quieres grabar?</h2>
+        <button id="btn-actualizar-fuentes" class="secundario">↻ Actualizar</button>
+      </div>
+      <h3>Pantallas</h3>
+      <div id="lista-pantallas" class="fuentes"></div>
+      <h3>Ventanas y aplicaciones</h3>
+      <div id="lista-ventanas" class="fuentes"></div>
+
+      <div class="opciones">
+        <label>Calidad
+          <select id="op-calidad">
+            <option value="1080">Hasta 1080p · 30 fps (recomendado)</option>
+            <option value="720">720p · 30 fps (ahorra espacio)</option>
+          </select>
+        </label>
+        <label class="interruptor"><input type="checkbox" id="op-microfono"> Micrófono</label>
+        <label class="interruptor"><input type="checkbox" id="op-sistema"> Audio del equipo <span class="sutil">(solo pantalla completa)</span></label>
+        <input id="op-titulo" placeholder="Título (opcional)">
+      </div>
+      <div id="resumen-fuentes" class="resumen"></div>
+      <button id="btn-grabar" class="grabar" disabled>● Grabar</button>
+      <p id="espacio" class="sutil"></p>
+    </section>
+  </main>
+
+  <!-- ===== Biblioteca ===== -->
+  <main id="vista-biblioteca" class="vista" hidden>
+    <div class="barra">
+      <input id="buscar" type="search" placeholder="Buscar por título, notas o etiquetas">
+      <label class="interruptor"><input type="checkbox" id="f-pendientes"> Pendientes</label>
+      <label class="interruptor"><input type="checkbox" id="f-favoritos"> ★ Favoritos</label>
+      <button id="btn-sincronizar" class="secundario">⟳ Sincronizar ahora</button>
+    </div>
+    <div id="lista-videos" class="videos"></div>
+    <p id="vacio" class="vacio" hidden>Aún no hay grabaciones. Ve a <b>Grabar</b> para hacer la primera.</p>
+  </main>
+
+  <!-- ===== NAS (copias que ya están allá) ===== -->
+  <main id="vista-nas" class="vista" hidden>
+    <div class="barra">
+      <input id="buscar-nas" type="search" placeholder="Buscar en el NAS">
+      <button id="btn-nas-recargar" class="secundario">↻</button>
+    </div>
+    <div id="lista-nas" class="videos"></div>
+    <div class="fila"><button id="nas-anterior" class="secundario">‹ Anterior</button><span id="nas-pagina" class="sutil"></span><button id="nas-siguiente" class="secundario">Siguiente ›</button></div>
+    <p id="nas-mensaje" class="vacio" hidden></p>
+  </main>
+
+  <!-- ===== Ajustes ===== -->
+  <main id="vista-ajustes" class="vista" hidden>
+    <section class="tarjeta">
+      <h2>NAS UGREEN</h2>
+      <label>Cómo copiar
+        <select id="aj-modo">
+          <option value="servicio">Servicio JSE Captura del NAS (recomendado; igual que en el teléfono)</option>
+          <option value="smb">Carpeta de red ya conectada en Windows (SMB)</option>
+          <option value="ninguno">No copiar al NAS por ahora</option>
+        </select>
+      </label>
+      <div id="aj-servicio">
+        <label>Dirección local del NAS <input id="aj-direccion" placeholder="192.168.100.249:8790  o  https://nas.tu-tailnet.ts.net:8790"></label>
+        <label>Usuario de servicio <input id="aj-usuario" autocomplete="username"></label>
+        <label>Contraseña <input id="aj-contrasena" type="password" autocomplete="current-password" placeholder="Solo para vincular; no se guarda"></label>
+        <div class="fila">
+          <button id="aj-vincular">Vincular este equipo</button>
+          <button id="aj-desvincular" class="secundario">Desvincular</button>
+          <span id="aj-vinculado" class="sutil"></span>
+        </div>
+        <label>Carpeta de destino en el NAS <select id="aj-carpeta"></select> <input id="aj-carpeta-nueva" placeholder="Nombre de la carpeta nueva y Enter" hidden></label>
+      </div>
+      <div id="aj-smb" hidden>
+        <label>Carpeta de red <span class="fila"><input id="aj-smb-carpeta" placeholder="\\192.168.100.249\spark\Fotos-JSE\biblioteca\JSE Captura"><button id="aj-smb-elegir" class="secundario">Elegir…</button></span></label>
+        <label class="interruptor"><input type="checkbox" id="aj-smb-fotos"> Esta carpeta está dentro de la biblioteca de Fotos JSE</label>
+      </div>
+      <div class="fila"><button id="aj-probar" class="secundario">Probar conexión</button><span id="aj-prueba" class="sutil"></span></div>
+    </section>
+
+    <section class="tarjeta">
+      <h2>Atajos de teclado (funcionan desde cualquier app)</h2>
+      <label>Iniciar / detener <input id="aj-atajo" placeholder="CommandOrControl+Shift+R"></label>
+      <label>Marcar momento <input id="aj-atajo-marca" placeholder="CommandOrControl+Shift+M"></label>
+      <p class="sutil">Escribe la combinación, por ejemplo <code>Ctrl+Alt+G</code>. Si otra app ya la usa, te avisamos.</p>
+    </section>
+
+    <section class="tarjeta">
+      <h2>En este equipo</h2>
+      <label>Carpeta de grabaciones <span class="fila"><input id="aj-carpeta-local" readonly><button id="aj-carpeta-local-elegir" class="secundario">Cambiar…</button></span></label>
+      <p class="sutil" id="aj-version"></p>
+    </section>
+    <div class="fila"><button id="aj-guardar">Guardar ajustes</button><span id="aj-guardado" class="sutil"></span></div>
+  </main>
+
+  <!-- ===== Reproductor ===== -->
+  <dialog id="reproductor">
+    <div class="fila entre"><input id="rep-titulo" class="titulo-edit"><button id="rep-cerrar" class="secundario">✕</button></div>
+    <video id="rep-video" controls preload="metadata"></video>
+    <div class="marcas" id="rep-marcas"></div>
+    <div class="fila">
+      <button id="rep-marcar" class="secundario">⚑ Marcar aquí</button>
+      <button id="rep-favorito" class="secundario">☆ Favorito</button>
+      <button id="rep-abrir" class="secundario">Abrir en el reproductor de Windows</button>
+      <button id="rep-carpeta" class="secundario">Mostrar en carpeta</button>
+      <button id="rep-compartir" class="secundario">Copiar para compartir</button>
+    </div>
+    <label>Notas <textarea id="rep-notas" rows="2"></textarea></label>
+    <label>Etiquetas (separadas por coma) <input id="rep-etiquetas"></label>
+    <details id="rep-recorte">
+      <summary>✂ Recortar (crea un MP4 nuevo; el original no cambia)</summary>
+      <div class="fila">
+        <label>Inicio <input id="rec-ini" type="number" step="0.1" min="0" value="0"> s</label><button id="rec-ini-aqui" class="secundario">← posición actual</button>
+        <label>Fin <input id="rec-fin" type="number" step="0.1" min="0"> s</label><button id="rec-fin-aqui" class="secundario">← posición actual</button>
+        <button id="rec-vista" class="secundario">▶ Vista previa</button>
+        <button id="rec-guardar">Guardar recorte</button>
+      </div>
+      <span id="rec-info" class="sutil"></span>
+    </details>
+    <div id="rep-destinos" class="destinos"></div>
+    <div class="fila">
+      <button id="rep-borrar-local" class="peligro-suave">Borrar de este equipo…</button>
+      <button id="rep-borrar-nas" class="peligro-suave">Borrar del NAS…</button>
+    </div>
+  </dialog>
+
+  <script src="grabador.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
