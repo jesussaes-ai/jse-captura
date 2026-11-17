@@ -16,6 +16,9 @@ targets:
     type: application
     platform: iOS
     sources: [JSECaptura]
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: mx.jse.captura
     info:
       path: JSECaptura/Info.plist
       properties:
@@ -41,6 +44,9 @@ targets:
     type: app-extension
     platform: iOS
     sources: [Transmision]
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: mx.jse.captura.Transmision
     info:
       path: Transmision/Info.plist
       properties:

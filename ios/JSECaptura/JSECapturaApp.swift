@@ -108,7 +108,7 @@ struct VideoTransferible: Transferable {
 struct BotonTransmision: UIViewRepresentable {
     func makeUIView(context: Context) -> RPSystemBroadcastPickerView {
         let v = RPSystemBroadcastPickerView(frame: CGRect(x: 0, y: 0, width: 96, height: 96))
-        v.preferredExtension = "mx.jse.JSECaptura.Transmision"
+        v.preferredExtension = "mx.jse.captura.Transmision"
         v.showsMicrophoneButton = true
         if let b = v.subviews.compactMap({ $0 as? UIButton }).first {
             b.imageView?.tintColor = .systemRed
@@ -427,7 +427,7 @@ struct AjustesVista: View {
     @AppStorage("direccion") private var direccion = ""
     @AppStorage("carpeta") private var carpeta = ""
     @AppStorage("galeria") private var galeria = false
-    @State private var usuario = "jesus"
+    @State private var usuario = "jse-captura"
     @State private var contrasena = ""
     @State private var estado: String?
     @State private var vinculado = Llavero.leer() != nil
