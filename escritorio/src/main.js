@@ -136,7 +136,7 @@ function mostrarIndicador() {
   });
   indicador.setAlwaysOnTop(true, 'screen-saver');
   indicador.setContentProtection(true);
-  indicador.loadFile(path.join(__dirname, 'ui', 'indicador.html'));
+  indicador.loadFile(path.join(__dirname, 'ui', 'indicador.html'), { hash: app.getVersion() });
 }
 function ocultarIndicador() {
   if (indicador && !indicador.isDestroyed()) indicador.close();

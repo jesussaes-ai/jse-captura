@@ -27,6 +27,11 @@ struct Raiz: View {
             NasVista().tabItem { Label("NAS", systemImage: "externaldrive.connected.to.line.below") }
             AjustesVista().tabItem { Label("Ajustes", systemImage: "gearshape") }
         }
+        // Versión arriba a la derecha en todas las pantallas.
+        .overlay(alignment: .topTrailing) {
+            Text("v\(Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "?")")
+                .font(.caption2.monospacedDigit()).foregroundStyle(.secondary).padding(.trailing, 10).padding(.top, 2).allowsHitTesting(false)
+        }
     }
 }
 

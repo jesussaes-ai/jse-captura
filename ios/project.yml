@@ -9,7 +9,7 @@ settings:
     SWIFT_VERSION: "5.9"
     DEVELOPMENT_TEAM: ""          # pon aquí tu Team ID de Apple para firmar
     CODE_SIGN_STYLE: Automatic
-    MARKETING_VERSION: "0.1.0"
+    MARKETING_VERSION: "0.1.2"
     CURRENT_PROJECT_VERSION: "1"
 targets:
   JSECaptura:
@@ -24,6 +24,8 @@ targets:
       properties:
         CFBundleDisplayName: JSE Captura
         CFBundleDevelopmentRegion: es
+        CFBundleShortVersionString: $(MARKETING_VERSION)
+        CFBundleVersion: $(CURRENT_PROJECT_VERSION)
         UILaunchScreen: {}
         UISupportedInterfaceOrientations: [UIInterfaceOrientationPortrait, UIInterfaceOrientationLandscapeLeft, UIInterfaceOrientationLandscapeRight]
         NSPhotoLibraryAddUsageDescription: "JSE Captura guarda tus grabaciones de pantalla en Fotos solo cuando tú lo pides."

@@ -387,6 +387,7 @@ $('#nas-siguiente').addEventListener('click', () => (paginaNas++, pintarNas()));
 // ---------- ajustes ----------
 async function pintarAjustes() {
   ajustes = await jse.ajustes();
+  $('#version').textContent = 'v' + ajustes.version;
   $('#aj-modo').value = ajustes.modo;
   $('#aj-direccion').value = ajustes.direccion;
   $('#aj-usuario').value = ajustes.usuario;

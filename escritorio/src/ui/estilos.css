@@ -8,6 +8,7 @@ nav button{background:none;color:var(--sutil);border:0;padding:8px 12px;border-r
 nav button.activo{background:var(--panel);color:var(--texto)}
 .globo{background:var(--pend);color:#000;border-radius:10px;padding:0 6px;font-size:12px;margin-left:4px}
 .estado-red{margin-left:auto;font-size:13px;color:var(--sutil)}
+.version{font-size:12px;color:var(--sutil);font-variant-numeric:tabular-nums;white-space:nowrap}
 .estado-red.ok{color:var(--ok)}.estado-red.pend{color:var(--pend)}.estado-red.mal{color:var(--mal)}
 main.vista{padding:18px;max-width:1200px;margin:0 auto}
 h2{margin:0 0 10px;font-size:18px}h3{margin:16px 0 8px;font-size:14px;color:var(--sutil);font-weight:600}

@@ -69,7 +69,7 @@ class ReproductorActivity : AppCompatActivity() {
         col.addView(Ui.fila(c,
             Ui.boton(c, "Borrar del teléfono…") { borrarLocal() },
             Ui.boton(c, "Borrar del NAS…") { borrarNas() }))
-        setContentView(ScrollView(c).apply { addView(col) })
+        setContentView(Ui.conVersion(c, ScrollView(c).apply { addView(col) }))
     }
 
     private fun guardar(cambio: () -> Unit) {

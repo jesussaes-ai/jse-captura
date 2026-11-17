@@ -54,6 +54,13 @@ object Ui {
         hijos.forEach { addView(it, LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT).apply { marginEnd = dp(ctx, 8) }) }
     }
 
+    /** Envuelve la pantalla y pone la versión arriba a la derecha (regla de Jesús: en todas las pantallas). */
+    fun conVersion(ctx: Context, contenido: android.view.View): android.view.View = android.widget.FrameLayout(ctx).apply {
+        addView(contenido, android.widget.FrameLayout.LayoutParams(android.view.ViewGroup.LayoutParams.MATCH_PARENT, android.view.ViewGroup.LayoutParams.MATCH_PARENT))
+        addView(TextView(ctx).apply { text = "v${BuildConfig.VERSION_NAME}"; textSize = 11f; setTextColor(SUTIL); setPadding(dp(ctx, 6), dp(ctx, 4), dp(ctx, 8), dp(ctx, 4)) },
+            android.widget.FrameLayout.LayoutParams(android.view.ViewGroup.LayoutParams.WRAP_CONTENT, android.view.ViewGroup.LayoutParams.WRAP_CONTENT, android.view.Gravity.TOP or android.view.Gravity.END))
+    }
+
     fun columna(ctx: Context) = LinearLayout(ctx).apply { orientation = LinearLayout.VERTICAL }
 
     fun chip(ctx: Context, nombre: String, d: Destino?): TextView {

@@ -26,7 +26,7 @@ class NasActivity : AppCompatActivity() {
             Ui.boton(c, "›") { pagina++; cargar(q.text.toString()) }))
         lista = Ui.columna(c)
         col.addView(lista)
-        setContentView(ScrollView(c).apply { addView(col) })
+        setContentView(Ui.conVersion(c, ScrollView(c).apply { addView(col) }))
         cargar("")
     }
 

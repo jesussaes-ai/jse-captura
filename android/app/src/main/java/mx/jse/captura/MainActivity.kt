@@ -92,7 +92,7 @@ class MainActivity : AppCompatActivity() {
         raiz.addView(vacio)
         lista = RecyclerView(c).apply { layoutManager = LinearLayoutManager(c); adapter = adaptador }
         raiz.addView(lista, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f))
-        setContentView(raiz)
+        setContentView(Ui.conVersion(c, raiz))
 
         if (Build.VERSION.SDK_INT >= 33 && checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED)
             requestPermissions(arrayOf(Manifest.permission.POST_NOTIFICATIONS), 2)

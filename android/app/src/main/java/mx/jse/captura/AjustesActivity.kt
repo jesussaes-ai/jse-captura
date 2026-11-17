@@ -96,6 +96,6 @@ class AjustesActivity : AppCompatActivity() {
             finish()
         })
         col.addView(Ui.texto(c, "\nJSE Captura ${BuildConfig.VERSION_NAME} · Android ${Build.VERSION.RELEASE}", 12f, Ui.SUTIL))
-        setContentView(ScrollView(c).apply { addView(col) })
+        setContentView(Ui.conVersion(c, ScrollView(c).apply { addView(col) }))
     }
 }
