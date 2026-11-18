@@ -25,7 +25,7 @@ Apple no permite instalar apps fuera de la App Store sin firmarlas, así que se 
 - **Windows**: elige un monitor o una ventana, activa o desactiva el micrófono y el audio del sistema, y pulsa **● Grabar**. Mientras graba aparece un indicador flotante que no sale en el video. Atajos: `Ctrl+Shift+R` inicia o detiene la grabación y `Ctrl+Shift+M` marca un momento (se cambian en Ajustes).
 - **Android** (v0.4.0, un toque desde cualquier app):
   1. Abre JSE Captura una vez: el botón rojo **● REC** queda flotando sobre todas las apps (la primera vez Android pide «Mostrar sobre otras apps»: actívalo y regresa).
-  2. Ve a la app que quieras (YouTube, Facebook, Zoom, tu reproductor…), pon tu video y toca **● REC**. Acepta «Iniciar ahora» y graba de inmediato.
+  2. Ve a la app que quieras (YouTube, Facebook, Zoom, tu reproductor…), pon tu video y toca **● REC**. Acepta «Iniciar ahora» (ya no pregunta qué app: siempre graba la pantalla completa, desde v0.4.1) y graba de inmediato.
   3. Mientras graba, el botón se vuelve dos botones pequeños y transparentes: **❚❚** pausa / **▶** sigue y **■** termina. La pausa no queda en el video: todo sale en un solo MP4 continuo.
   4. Al terminar te pregunta **el nombre del archivo**. Si das el permiso «Acceso de uso» (botón en la pantalla principal), el nombre propuesto lleva la app grabada, p. ej. «YouTube 2026-11-18 21:30».
   También: **● Grabar ahora** en la app (empieza a los 3 s), la notificación (❚❚ Pausa / ■ Detener / ⚑ Marcar) o el mosaico de Ajustes rápidos. Para quitar el botón flotante: «Quitar botón» en su notificación o la casilla «Botón flotante».

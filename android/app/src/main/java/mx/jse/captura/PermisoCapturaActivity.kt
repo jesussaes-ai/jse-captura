@@ -12,8 +12,9 @@ class PermisoCapturaActivity : Activity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         val mpm = getSystemService(MediaProjectionManager::class.java)
-        // Android 14+: el diálogo del sistema deja elegir pantalla completa o una sola app.
-        val i = if (Build.VERSION.SDK_INT >= 34) mpm.createScreenCaptureIntent(MediaProjectionConfig.createConfigForUserChoice()) else mpm.createScreenCaptureIntent()
+        // Siempre pantalla completa: se graba lo que estés viendo (YouTube, Facebook, Zoom…) sin tener que
+        // elegir la app cada vez. Android solo deja saltar la elección, no el «Iniciar ahora».
+        val i = if (Build.VERSION.SDK_INT >= 34) mpm.createScreenCaptureIntent(MediaProjectionConfig.createConfigForDefaultDisplay()) else mpm.createScreenCaptureIntent()
         @Suppress("DEPRECATION")
         startActivityForResult(i, 1)
     }
