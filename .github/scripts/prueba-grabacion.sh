@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # Prueba completa del flujo de grabación con botón flotante en el emulador:
-#  Preparar → (no graba todavía) → tocar ● REC → graba ~6 s → tocar ■ → pide el nombre → se guarda con ese nombre
+#  Abrir la app → el botón ● REC queda flotando → ir a otra app → tocar ● REC → graba → ❚❚ pausa ~7 s → ▶ sigue
+#  → ■ termina → pide el nombre → se guarda con ese nombre, sin el tiempo de la pausa
 #  → el MP4 existe con video y audio → la miniatura abre la pantalla completa con la versión arriba a la derecha.
 set -uo pipefail
 APK=$(ls "$1"/*.apk | head -1)
@@ -34,32 +35,51 @@ adb logcat -c
 adb shell am start -W -n $P/.MainActivity >/dev/null; sleep 3
 antes=$(adb shell "ls '/sdcard/Android/data/$P/files/Movies/JSE Captura' 2>/dev/null" | grep -c mp4)
 
-# 1) Preparar: acepta el permiso del sistema si aparece y debe quedar el botón flotante, sin grabar aún.
-tocar "● Preparar grabación"; sleep 3
+# 1) Al abrir la app, el botón ● REC queda flotando solo (sin «preparar»), y no graba nada todavía.
+pos=$(burbuja) && bien "botón ● REC visible al abrir la app ($pos)" || mal "no apareció el botón flotante al abrir la app"
+adb exec-out screencap -p > pantallas/1-boton.png
+
+# 2) Ir a otra app (como YouTube) con el botón todavía a la vista, y tocar ● REC: graba de inmediato.
+#    Ojo: la app Ajustes de Android oculta a propósito los botones flotantes de todas las apps (anti-engaños).
+adb shell appops set $P GET_USAGE_STATS allow || true
+adb shell am start -a android.intent.action.VIEW -d "https://example.com/" >/dev/null 2>&1 || adb shell input keyevent KEYCODE_HOME
+sleep 5
+volcar; for t in "Use without an account" "Accept & continue" "No thanks" "No, thanks"; do c=$(centro "$t") && { adb shell input tap $c; sleep 2; volcar; }; done
+pos=$(burbuja) && bien "el botón sigue a la vista en otra app" || { mal "el botón no se ve en otra app"; adb shell input keyevent KEYCODE_HOME; sleep 2; pos=$(burbuja); }
+n=$(adb shell "ls '/sdcard/Android/data/$P/files/Movies/JSE Captura' 2>/dev/null" | grep -c mp4)
+[ "$n" = "$antes" ] && bien "todavía no se creó ninguna grabación" || mal "se creó una grabación antes de tocar ● REC"
+[ -n "${pos:-}" ] && { adb shell input tap $pos; bien "toqué ● REC"; }
+sleep 3
 volcar
 for t in "Start now" "Iniciar ahora" "Start" "Iniciar"; do c=$(centro "$t") && { adb shell input tap $c; sleep 3; break; }; done
 volcar
 if grep -q 'text="Entire screen"\|text="Pantalla completa"\|text="A single app"' /tmp/g.xml; then
-  c=$(centro "A single app") && { adb shell input tap $c; sleep 1; volcar; c=$(centro "Entire screen") && adb shell input tap $c; sleep 1; }
+  c=$(centro "A single app") && { adb shell input tap $c; sleep 1; volcar; c=$(centro "Entire screen") && adb shell input tap $c; sleep 1; volcar; }
   for t in "Start" "Next" "Iniciar"; do c=$(centro "$t") && { adb shell input tap $c; sleep 3; break; }; done
 fi
-adb exec-out screencap -p > pantallas/1-preparado.png
-pos=$(burbuja) && bien "botón flotante visible en ($pos)" || mal "no apareció el botón flotante"
+t0=$(date +%s)
 sleep 3
-n=$(adb shell "ls '/sdcard/Android/data/$P/files/Movies/JSE Captura' 2>/dev/null" | grep -c mp4)
-[ "$n" = "$antes" ] && bien "preparado: todavía no se creó ninguna grabación" || mal "se creó una grabación antes de tocar ● REC"
-
-# 2) Ir a la pantalla de inicio (como al abrir YouTube) y empezar desde la burbuja.
-#    Ojo: la app Ajustes de Android oculta a propósito los botones flotantes de todas las apps (anti-engaños).
-adb shell input keyevent KEYCODE_HOME; sleep 2
-pos=$(burbuja) && { adb shell input tap $pos; bien "toqué ● REC"; } || mal "sin burbuja para empezar"
-sleep 7
 adb exec-out screencap -p > pantallas/2-grabando.png
-dumpsys_n=$(adb shell dumpsys notification --noredact | grep -c 'Grabando la pantalla' || true)
-[ "$dumpsys_n" -gt 0 ] && bien "notificación «Grabando»" || { mal "no se ve la notificación de grabando"; adb shell dumpsys notification --noredact | grep -E "mx.jse.captura|android.title|android.text" | head -20; }
+adb shell dumpsys notification --noredact | grep -q 'Grabando la pantalla' && bien "graba de inmediato (notificación «Grabando»)" || { mal "no se ve la notificación de grabando"; adb shell dumpsys notification --noredact | grep -E "android.title|android.text" | head -20; }
+app=$(adb logcat -d | grep -m1 -oE 'app al frente=[^ ]*.*' | tr -d '\r')
+echo "• $app"
+
+# 2b) Pausa ~6 s y seguir: lo de la pausa no debe quedar en el video.
+marco() { adb shell dumpsys window windows | grep -A40 'JSE Captura burbuja' | grep -m1 -oE ' frame=\[-?[0-9]+,-?[0-9]+\]\[-?[0-9]+,-?[0-9]+\]' | grep -oE -- '-?[0-9]+' | tr '\n' ' '; }
+izq() { set -- $(marco); [ $# -eq 4 ] && echo "$(( $1 + ($3-$1)/4 )) $(( ($2+$4)/2 ))"; }
+der() { set -- $(marco); [ $# -eq 4 ] && echo "$(( $3 - ($3-$1)/4 )) $(( ($2+$4)/2 ))"; }
+p=$(izq) && { adb shell input tap $p; bien "toqué ❚❚ pausa"; } || mal "sin botón de pausa"
+sleep 2
+adb shell dumpsys notification --noredact | grep -q 'Grabación en pausa' && bien "notificación «en pausa»" || mal "no se ve la pausa en la notificación"
+adb exec-out screencap -p > pantallas/2b-pausa.png
+sleep 5
+p=$(izq) && { adb shell input tap $p; bien "toqué ▶ seguir"; } || mal "sin botón para seguir"
+sleep 3
+adb shell dumpsys notification --noredact | grep -q 'Grabando la pantalla' && bien "siguió grabando" || mal "no siguió grabando tras la pausa"
 
 # 3) Detener desde la burbuja y poner nombre.
-pos=$(burbuja) && { adb shell input tap $pos; bien "toqué ■ para detener"; } || mal "sin burbuja para detener"
+p=$(der) && { adb shell input tap $p; bien "toqué ■ para terminar"; } || mal "sin botón para terminar"
+total=$(( $(date +%s) - t0 ))
 sleep 8
 volcar; adb exec-out screencap -p > pantallas/3-nombre.png
 if grep -q 'Cómo se llama esta grabación' /tmp/g.xml; then
@@ -84,7 +104,9 @@ if [ -s pantallas/prueba.mp4 ] && command -v ffprobe >/dev/null; then
   grep -q 'codec_name=h264' /tmp/probe.txt && bien "video H.264" || mal "sin pista H.264"
   grep -q 'codec_name=aac' /tmp/probe.txt && bien "audio AAC" || echo "• sin pista de audio (el emulador puede no tener audio que capturar)"
   d=$(grep -oE 'duration=[0-9.]+' /tmp/probe.txt | tail -1 | cut -d= -f2)
-  awk -v d="$d" 'BEGIN{exit !(d>=4 && d<=12)}' && bien "duración ${d}s (empezó al tocar ● REC, no al preparar)" || mal "duración inesperada: ${d}s"
+  echo "• tiempo total con la pausa: ${total:-?}s"
+  awk -v d="$d" -v t="${total:-99}" 'BEGIN{exit !(d>=3 && d<=t-4)}' && bien "duración ${d}s: sin los ~7 s de pausa (total ${total}s)" || mal "duración inesperada: ${d}s (total ${total:-?}s; la pausa debía quitarse)"
+  ffprobe -v error -select_streams v -show_entries packet=pts_time -of csv=p=0 pantallas/prueba.mp4 | awk -F, 'NR>1 && $1-p>1.0 {print "hueco de " $1-p " s en " p; h=1} {p=$1} END{exit h}' && bien "video continuo, sin hueco por la pausa" || mal "el video tiene un hueco donde iba la pausa"
 fi
 
 # 4) Miniatura → pantalla completa con la versión.
@@ -118,7 +140,7 @@ foco=$(adb shell dumpsys window | grep -m1 -E 'mCurrentFocus|mFocusedApp' | tr -
 echo "en pantalla: $foco"
 echo "$foco" | grep -q "$P" && echo "• el link no abrió otra app (¿el emulador no tiene navegador?)" || bien "el link se abrió en otra app"
 adb shell dumpsys notification --noredact | grep -q 'Grabando la pantalla' && bien "empezó a grabar sola tras abrir el link" || { mal "no empezó a grabar con el link"; adb logcat -d | grep -E "JSECaptura" | tail -8; }
-pos=$(burbuja) && adb shell input tap $pos
+p=$(der) && adb shell input tap $p
 sleep 8; volcar
 c=$(centro "Guardar" exacto) || c=$(centro "GUARDAR" exacto) || c=""
 [ -n "$c" ] && adb shell input tap $c

@@ -11,6 +11,9 @@ class App : Application() {
         nm.createNotificationChannel(NotificationChannel(CANAL_GRABANDO, "Grabando", NotificationManager.IMPORTANCE_LOW).apply {
             description = "Aviso persistente mientras se graba la pantalla"
         })
+        nm.createNotificationChannel(NotificationChannel(CANAL_BOTON, "Botón ● REC", NotificationManager.IMPORTANCE_MIN).apply {
+            description = "Aviso discreto mientras el botón flotante está a la vista"
+        })
         nm.createNotificationChannel(NotificationChannel(CANAL_AVISOS, "Avisos", NotificationManager.IMPORTANCE_DEFAULT).apply {
             description = "Grabación guardada, copias al NAS y errores"
         })
@@ -24,5 +27,6 @@ class App : Application() {
     companion object {
         const val CANAL_GRABANDO = "grabando"
         const val CANAL_AVISOS = "avisos"
+        const val CANAL_BOTON = "boton"
     }
 }

@@ -37,16 +37,32 @@ class CapturaService : Service() {
         const val ACCION_DETENER = "detener"
         const val ACCION_MARCAR = "marcar"
         const val ACCION_EMPEZAR = "empezar"
+        const val ACCION_PAUSA = "pausa"
         const val EXTRA_RESULTADO = "resultado"
         const val EXTRA_DATOS = "datos"
         const val EXTRA_LINK = "link"
+        /** Nombre de la app que se está grabando (YouTube, Facebook, Zoom…), para el título. */
+        const val EXTRA_APP = "app"
+        /** Segundos de cuenta regresiva antes de empezar (0 = de inmediato). */
+        const val EXTRA_CUENTA = "cuenta"
         private const val NOTI = 7
 
         /** Grabando de verdad (se están escribiendo cuadros). */
         @Volatile var activo = false; private set
-        /** Permiso aceptado y todo listo, esperando a que toques el botón flotante para empezar. */
+        /** Permiso aceptado y todo listo; corre la cuenta regresiva antes de empezar. */
         @Volatile var preparado = false; private set
+        @Volatile var pausado = false; private set
+        @Volatile var guardando = false; private set
+        /** Cuenta regresiva que se muestra en el botón flotante (0 = ninguna). */
+        @Volatile var cuenta = 0; private set
         @Volatile var inicioMs = 0L; private set
+        @Volatile private var pausaAcumMs = 0L
+        @Volatile private var pausaDesdeMs = 0L
+        /** Tiempo grabado, sin contar las pausas. */
+        fun transcurridoMs(): Long {
+            val ahora = SystemClock.elapsedRealtime()
+            return ahora - inicioMs - pausaAcumMs - (if (pausado) ahora - pausaDesdeMs else 0)
+        }
         @Volatile var ultimoError: String? = null
         val oyentes = mutableListOf<() -> Unit>()
         private fun avisar() = Handler(Looper.getMainLooper()).post { oyentes.toList().forEach { it() } }
@@ -54,6 +70,7 @@ class CapturaService : Service() {
         fun detener(ctx: Context) = ctx.startService(Intent(ctx, CapturaService::class.java).setAction(ACCION_DETENER))
         fun empezar(ctx: Context) = ctx.startService(Intent(ctx, CapturaService::class.java).setAction(ACCION_EMPEZAR))
         fun marcar(ctx: Context) = ctx.startService(Intent(ctx, CapturaService::class.java).setAction(ACCION_MARCAR))
+        fun pausa(ctx: Context) = ctx.startService(Intent(ctx, CapturaService::class.java).setAction(ACCION_PAUSA))
     }
 
     private var proyeccion: MediaProjection? = null
@@ -67,8 +84,8 @@ class CapturaService : Service() {
     private var deteniendo = false
     private var mic = false
     private var interno = false
-    private var burbuja: Burbuja? = null
     private var link: String? = null
+    private var app: String? = null
     private val manejador = Handler(Looper.getMainLooper())
     private val vigilarEspacio = object : Runnable {
         override fun run() {
@@ -88,10 +105,11 @@ class CapturaService : Service() {
             ACCION_INICIAR -> iniciar(intent)
             ACCION_DETENER -> terminar()
             ACCION_EMPEZAR -> empezar()
+            ACCION_PAUSA -> alternarPausa()
             ACCION_MARCAR -> if (activo) {
-                marcas.add(Marca((SystemClock.elapsedRealtime() - inicioMs) / 1000.0))
+                marcas.add(Marca(transcurridoMs() / 1000.0))
                 guardarSesion()
-                notificar("Momento marcado en ${Ui.duracion((SystemClock.elapsedRealtime() - inicioMs) / 1000.0)}")
+                notificar("Momento marcado en ${Ui.duracion(transcurridoMs() / 1000.0)}")
             }
         }
         return START_NOT_STICKY
@@ -155,22 +173,19 @@ class CapturaService : Service() {
         }
         ultimoError = cod!!.avisoAudio
         link = intent.getStringExtra(EXTRA_LINK)
+        app = intent.getStringExtra(EXTRA_APP)
         preparado = true
-        android.util.Log.i("JSECaptura", "preparado ${w}x$h mic=$mic interno=$interno burbuja=${aj.botonFlotante}")
-        if (link != null) {
-            // Grabar desde un link: la app del link ya se está abriendo; se empieza solo a los 3 s.
-            burbuja = if (aj.botonFlotante) Burbuja(this) { if (preparado) empezar() else if (activo) terminar() }.also { it.mostrar() } else null
-            getSystemService(NotificationManager::class.java).notify(NOTI, notificacion("Abriendo el link… empieza a grabar en 3 s"))
-            actualizarMosaico(); avisar()
-            for (n in 3 downTo 1) manejador.postDelayed({ if (preparado) burbuja?.cuenta(n) }, (3 - n) * 1000L)
-            manejador.postDelayed({ if (preparado) empezar() }, 3000)
-        } else if (aj.botonFlotante) {
-            // Queda listo: la grabación empieza cuando tocas el botón flotante (o «Empezar» en la notificación).
-            burbuja = Burbuja(this) { if (preparado) empezar() else if (activo) terminar() }
-            burbuja!!.mostrar()
-            getSystemService(NotificationManager::class.java).notify(NOTI, notificacion(null))
+        android.util.Log.i("JSECaptura", "preparado ${w}x$h mic=$mic interno=$interno app=$app")
+        // El botón flotante sigue a la vista aunque se haya empezado desde el mosaico o la app.
+        BurbujaService.mostrar(this)
+        val segundos = if (link != null) 3 else intent.getIntExtra(EXTRA_CUENTA, 0)
+        if (segundos > 0) {
+            // Cuenta regresiva en el botón flotante (link: la app del link se abre mientras tanto).
+            getSystemService(NotificationManager::class.java).notify(NOTI, notificacion(
+                if (link != null) "Abriendo el link… empieza a grabar en $segundos s" else "Empieza a grabar en $segundos s"))
             actualizarMosaico()
-            avisar()
+            for (n in segundos downTo 1) manejador.postDelayed({ if (preparado) { cuenta = n; avisar() } }, (segundos - n) * 1000L)
+            manejador.postDelayed({ cuenta = 0; if (preparado) empezar() }, segundos * 1000L)
         } else empezar()
     }
 
@@ -182,11 +197,25 @@ class CapturaService : Service() {
         preparado = false
         activo = true
         inicioMs = SystemClock.elapsedRealtime()
+        pausaAcumMs = 0; pausado = false
         guardarSesion()
-        burbuja?.modoGrabando()
         getSystemService(NotificationManager::class.java).notify(NOTI, notificacion(null))
         manejador.postDelayed(vigilarEspacio, 5000)
         actualizarMosaico()
+        avisar()
+    }
+
+    /** ❚❚ / ▶: la pausa no queda en el video; al seguir, la grabación continúa en el mismo MP4. */
+    private fun alternarPausa() {
+        if (!activo || deteniendo) return
+        val c = cod ?: return
+        if (!pausado) {
+            c.pausar(); pausaDesdeMs = SystemClock.elapsedRealtime(); pausado = true
+        } else {
+            c.reanudar(); pausaAcumMs += SystemClock.elapsedRealtime() - pausaDesdeMs; pausado = false
+        }
+        android.util.Log.i("JSECaptura", "pausado=$pausado")
+        getSystemService(NotificationManager::class.java).notify(NOTI, notificacion(null))
         avisar()
     }
 
@@ -201,16 +230,15 @@ class CapturaService : Service() {
             runCatching { c?.detener() }
             runCatching { proyeccion?.stop() }
             s?.deleteRecursively()
-            manejador.post { burbuja?.quitar(); burbuja = null; pararServicio() }
+            manejador.post { pararServicio() }
         }.start()
     }
 
     /** Datos de la sesión en disco: si el proceso muere, Recuperacion los usa al volver a abrir. */
     private fun guardarSesion() {
-        val aj = Ajustes(this)
         val j = JSONObject().put("id", id).put("creado", creado).put("creadoLocal", creadoLocal)
-            .put("titulo", (link?.let { Link.sitio(it) + " " } ?: "Grabación ") + creadoLocal.replace('T', ' ').take(16))
-            .put("origen", "Android · ${Build.MANUFACTURER} ${Build.MODEL} · pantalla completa" + (link?.let { " · $it" } ?: ""))
+            .put("titulo", (link?.let { Link.sitio(it) + " " } ?: app?.let { "$it " } ?: "Grabación ") + creadoLocal.replace('T', ' ').take(16))
+            .put("origen", "Android · ${Build.MANUFACTURER} ${Build.MODEL} · pantalla completa" + (app?.let { " · $it" } ?: "") + (link?.let { " · $it" } ?: ""))
             .put("audio", listOfNotNull(if (mic) "micrófono" else null, if (interno) "audio interno" else null).joinToString(" + ").ifEmpty { "sin audio" })
             .put("marcas", JSONArray(marcas.map { JSONObject().put("t", it.t).put("nota", it.nota) }))
         File(sesion, "sesion.json").writeText(j.toString())
@@ -221,7 +249,8 @@ class CapturaService : Service() {
         if (preparado && !activo && !deteniendo) { cancelar(); return }
         if (!activo || deteniendo) { if (!activo && !deteniendo) pararServicio(); return }
         deteniendo = true
-        burbuja?.modoGuardando()
+        guardando = true
+        avisar()
         getSystemService(NotificationManager::class.java).notify(NOTI, notificacion("Guardando el MP4…"))
         val s = sesion!!
         val c = cod!!
@@ -230,25 +259,28 @@ class CapturaService : Service() {
             c.detener()
             runCatching { proyeccion?.stop() }
             activo = false
+            pausado = false
             val g = Recuperacion.finalizarSesion(this, s, recuperada = false)
             android.util.Log.i("JSECaptura", "finalizada=${g?.id} segmentos=${c.segmentos.map { it.name + ":" + it.length() }}")
             if (g != null) {
                 val nombrar = NombrarActivity.intent(this, g.id)
                 Ui.avisoSistema(this, "Grabación guardada", "${g.titulo} · ${Ui.duracion(g.duracion)} · toca para ponerle nombre",
                     PendingIntent.getActivity(this, g.id.hashCode(), nombrar, PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT))
-                // Se pide el nombre antes de copiar al NAS. El botón flotante sigue visible en este momento, lo que
-                // permite a Android 15 abrir la ventana desde segundo plano.
+                // Se pide el nombre antes de copiar al NAS. El botón flotante sigue visible, lo que permite a
+                // Android 15 abrir la ventana desde segundo plano.
                 val pidio = Ajustes(this).pedirNombre && runCatching { startActivity(nombrar) }.onFailure { android.util.Log.w("JSECaptura", "nombrar", it) }.isSuccess
                 if (!pidio) Sincronizar.ahora(this)
             } else ultimoError = ultimoError ?: "No se pudo guardar la grabación. Los segmentos quedaron en la carpeta Grabando."
-            manejador.postDelayed({ burbuja?.quitar(); burbuja = null; pararServicio() }, 1200)
+            manejador.postDelayed({ pararServicio() }, 600)
         }.start()
     }
 
     private fun pararServicio() {
         activo = false
         preparado = false
-        burbuja?.quitar(); burbuja = null
+        pausado = false
+        guardando = false
+        cuenta = 0
         manejador.removeCallbacks(vigilarEspacio)
         stopForeground(STOP_FOREGROUND_REMOVE)
         stopSelf()
@@ -265,16 +297,17 @@ class CapturaService : Service() {
         val abrir = PendingIntent.getActivity(this, 0, Intent(this, MainActivity::class.java), PendingIntent.FLAG_IMMUTABLE)
         val b = Notification.Builder(this, App.CANAL_GRABANDO)
             .setSmallIcon(R.drawable.ic_rec)
-            .setContentTitle(if (activo) "● Grabando la pantalla" else if (preparado) "Listo para grabar" else "JSE Captura")
-            .setContentText(texto ?: if (preparado) "Abre lo que quieras grabar y toca ● REC (botón flotante) o «Empezar» aquí"
-                else "Toca Detener aquí, en el botón flotante o en el mosaico de Ajustes rápidos")
+            .setContentTitle(if (activo && pausado) "❚❚ Grabación en pausa" else if (activo) "● Grabando la pantalla" else if (preparado) "Por empezar a grabar" else "JSE Captura")
+            .setContentText(texto ?: if (activo && pausado) "Pausa en ${Ui.duracion(transcurridoMs() / 1000.0)} · toca ▶ Seguir para continuar en el mismo video"
+                else if (preparado) "Empieza en unos segundos" else "❚❚ pausa · ■ termina (aquí, en el botón flotante o en el mosaico)")
             .setOngoing(true)
             .setContentIntent(abrir)
             .setCategory(Notification.CATEGORY_SERVICE)
         if (activo) {
-            b.setUsesChronometer(true).setWhen(System.currentTimeMillis() - (SystemClock.elapsedRealtime() - inicioMs))
+            if (!pausado) b.setUsesChronometer(true).setWhen(System.currentTimeMillis() - transcurridoMs())
+            b.addAction(Notification.Action.Builder(null, if (pausado) "▶ Seguir" else "❚❚ Pausa", pi(ACCION_PAUSA, 4)).build())
             b.addAction(Notification.Action.Builder(null, "■ Detener", pi(ACCION_DETENER, 1)).build())
-            b.addAction(Notification.Action.Builder(null, "⚑ Marcar", pi(ACCION_MARCAR, 2)).build())
+            if (!pausado) b.addAction(Notification.Action.Builder(null, "⚑ Marcar", pi(ACCION_MARCAR, 2)).build())
         } else if (preparado) {
             b.addAction(Notification.Action.Builder(null, "● Empezar", pi(ACCION_EMPEZAR, 3)).build())
             b.addAction(Notification.Action.Builder(null, "✕ Cancelar", pi(ACCION_DETENER, 1)).build())

@@ -33,6 +33,8 @@ import java.time.format.DateTimeFormatter
 class MainActivity : AppCompatActivity() {
     private lateinit var aj: Ajustes
     private lateinit var btnGrabar: android.widget.Button
+    private lateinit var btnPausa: android.widget.Button
+    private lateinit var btnVerApps: android.widget.Button
     private lateinit var campoLink: EditText
     private lateinit var estado: TextView
     private lateinit var resumen: TextView
@@ -81,17 +83,25 @@ class MainActivity : AppCompatActivity() {
         val interno = CheckBox(c).apply { text = "Audio del teléfono"; setTextColor(Ui.TEXTO); isChecked = aj.audioInterno
             setOnCheckedChangeListener { _, v -> aj.audioInterno = v; if (v) pedirAudio(); pintarResumen() } }
         val flotante = CheckBox(c).apply { text = "Botón flotante"; setTextColor(Ui.TEXTO); isChecked = aj.botonFlotante
-            setOnCheckedChangeListener { _, v -> aj.botonFlotante = v; if (v && !Settings.canDrawOverlays(c)) pedirSobreApps(); pintarEstado(); pintarResumen() } }
+            setOnCheckedChangeListener { _, v ->
+                aj.botonFlotante = v
+                if (v) { if (!Settings.canDrawOverlays(c)) pedirSobreApps() else BurbujaService.mostrar(c) } else BurbujaService.quitar(c)
+                pintarEstado(); pintarResumen() } }
         val nombre = CheckBox(c).apply { text = "Pedir nombre al terminar"; setTextColor(Ui.TEXTO); isChecked = aj.pedirNombre
             setOnCheckedChangeListener { _, v -> aj.pedirNombre = v } }
         resumen = Ui.texto(c, "", 13f, Ui.SUTIL)
-        btnGrabar = Ui.boton(c, "● Grabar", true) { alternar() }.apply { textSize = 18f }
+        btnGrabar = Ui.boton(c, "● Grabar ahora", true) { alternar() }.apply { textSize = 18f }
+        btnPausa = Ui.boton(c, "❚❚ Pausa") { CapturaService.pausa(c) }.apply { textSize = 18f; visibility = View.GONE }
+        btnVerApps = Ui.boton(c, "Que el nombre diga qué app grabaste (YouTube, Zoom…)") { pedirVerApps() }.apply { textSize = 13f }
         estado = Ui.texto(c, "", 14f, Ui.TEXTO)
+        cab.addView(Ui.texto(c, "Ve a cualquier app (YouTube, Facebook, Zoom, tu reproductor…), pon tu video y toca el botón flotante ● REC. " +
+            "Mientras graba: ❚❚ pausa / ▶ sigue, ■ termina. Todo queda en un solo video.", 14f, Ui.TEXTO).apply { setPadding(0, Ui.dp(c, 6), 0, Ui.dp(c, 6)) })
+        cab.addView(Ui.fila(c, btnGrabar, btnPausa))
+        cab.addView(estado)
         cab.addView(calidad)
         cab.addView(interno); cab.addView(mic); cab.addView(flotante); cab.addView(nombre)
+        cab.addView(btnVerApps)
         cab.addView(resumen)
-        cab.addView(btnGrabar, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT).apply { topMargin = Ui.dp(c, 8) })
-        cab.addView(estado)
 
         // ---- grabar desde un link ----
         cab.addView(Ui.texto(c, "🔗 Grabar desde un link", 16f, Ui.TEXTO, true).apply { setPadding(0, Ui.dp(c, 14), 0, 0) })
@@ -120,7 +130,7 @@ class MainActivity : AppCompatActivity() {
         fFav = CheckBox(c).apply { text = "★ Favoritos"; setTextColor(Ui.TEXTO); setOnCheckedChangeListener { _, _ -> refrescar() } }
         cab.addView(buscar)
         cab.addView(Ui.fila(c, fPend, fFav, Ui.boton(c, "⟳ Sincronizar") { Sincronizar.forzar(c); estado.text = "Sincronizando…" }))
-        vacio = Ui.texto(c, "Aún no hay grabaciones. Toca Grabar, o usa el mosaico «JSE Captura» de Ajustes rápidos para grabar desde cualquier app.", 14f, Ui.SUTIL)
+        vacio = Ui.texto(c, "Aún no hay grabaciones. Toca ● REC (botón flotante) en cualquier app, o usa el mosaico «JSE Captura» de Ajustes rápidos para grabar desde cualquier app.", 14f, Ui.SUTIL)
         cab.addView(vacio)
         lista = RecyclerView(c).apply { layoutManager = LinearLayoutManager(c)
             adapter = androidx.recyclerview.widget.ConcatAdapter(Cabecera(cab), adaptador) }
@@ -138,6 +148,12 @@ class MainActivity : AppCompatActivity() {
         CapturaService.oyentes.add(oyenteCaptura)
         refrescar(); pintarEstado()
         if (CapturaService.activo || CapturaService.preparado) h.post(reloj)
+        // El botón ● REC queda flotando desde que abres la app: vas a cualquier app y lo tocas.
+        if (aj.botonFlotante) {
+            if (Settings.canDrawOverlays(this)) BurbujaService.mostrar(this)
+            else if (!yaPidioSobreApps) { yaPidioSobreApps = true; pedirSobreApps() }
+        }
+        btnVerApps.visibility = if (BurbujaService.puedeVerApps(this)) View.GONE else View.VISIBLE
     }
 
     override fun onPause() {
@@ -145,6 +161,17 @@ class MainActivity : AppCompatActivity() {
         Biblioteca.quitarOyente(oyenteBib)
         CapturaService.oyentes.remove(oyenteCaptura)
         h.removeCallbacks(reloj)
+    }
+
+    private var yaPidioSobreApps = false
+
+    /** Acceso a «uso de apps»: solo para saber qué app estaba al frente y ponerle ese nombre al video. */
+    private fun pedirVerApps() {
+        android.app.AlertDialog.Builder(this)
+            .setTitle("Nombrar con la app grabada")
+            .setMessage("Así el video se llama, por ejemplo, «YouTube 2026-11-18 21:30». En la pantalla que se abre, busca JSE Captura y activa «Permitir acceso de uso». Solo se usa para el nombre; nada sale del teléfono.")
+            .setPositiveButton("Abrir permiso") { _, _ -> runCatching { startActivity(Intent(Settings.ACTION_USAGE_ACCESS_SETTINGS)) } }
+            .setNegativeButton("Ahora no", null).show()
     }
 
     private fun pedirAudio() {
@@ -167,7 +194,7 @@ class MainActivity : AppCompatActivity() {
             (if (audio.isEmpty()) "🔇 sin audio" else "🔊 " + audio.joinToString(" + ")) +
             (if (aj.audioInterno) "\nAlgunas apps (Netflix, WhatsApp, llamadas) no permiten capturar su audio." else "") +
             (if (aj.microfono && aj.audioInterno) "\nCon micrófono y audio del teléfono a la vez: mejor con audífonos." else "") +
-            (if (aj.botonFlotante) "\nPreparar → abre lo que quieras grabar → toca ● REC. Otra vez para detener." else "")
+            ""
     }
 
     /** Un link compartido desde YouTube, el navegador u otra app («Compartir → JSE Captura») llena el campo. */
@@ -206,9 +233,9 @@ class MainActivity : AppCompatActivity() {
         else {
             CapturaService.ultimoError = null
             if ((aj.microfono || aj.audioInterno) && checkSelfPermission(Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) { pedirAudio(); return }
-            if (aj.botonFlotante && !Settings.canDrawOverlays(this)) { pedirSobreApps(); return }
-            irAlFondoAlPreparar = aj.botonFlotante
-            startActivity(Intent(this, PermisoCapturaActivity::class.java))
+            // Empieza a los 3 s: da tiempo de salir de la app y abrir lo que quieres grabar.
+            irAlFondoAlPreparar = true
+            startActivity(Intent(this, PermisoCapturaActivity::class.java).putExtra(CapturaService.EXTRA_CUENTA, 3))
             h.postDelayed(reloj, 800)
         }
     }
@@ -217,7 +244,7 @@ class MainActivity : AppCompatActivity() {
     private fun pedirSobreApps() {
         android.app.AlertDialog.Builder(this)
             .setTitle("Permitir el botón flotante")
-            .setMessage("Para que el botón ● REC flote sobre YouTube y las demás apps, activa «Mostrar sobre otras apps» para JSE Captura en la pantalla que se abre y regresa.\n\nSin ese permiso puedes empezar desde la notificación («● Empezar»).")
+            .setMessage("Para que el botón ● REC flote sobre YouTube, Facebook, Zoom y las demás apps, activa «Mostrar sobre otras apps» para JSE Captura en la pantalla que se abre y regresa.\n\nSin ese permiso puedes grabar con «● Grabar ahora» o con el mosaico de Ajustes rápidos.")
             .setPositiveButton("Abrir permiso") { _, _ ->
                 runCatching { startActivity(Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION, Uri.parse("package:$packageName"))) }
             }
@@ -229,17 +256,20 @@ class MainActivity : AppCompatActivity() {
     private var irAlFondoAlPreparar = false
 
     private fun pintarEstado() {
+        val aviso = CapturaService.ultimoError?.let { "\n⚠ $it" } ?: ""
+        btnPausa.visibility = if (CapturaService.activo) View.VISIBLE else View.GONE
         if (CapturaService.preparado) {
-            btnGrabar.text = "✕ Cancelar (aún no graba)"
-            estado.text = "Listo. Abre lo que quieras grabar (YouTube, el curso…) y toca el botón flotante ● REC para empezar. " +
-                "Tócalo otra vez para detener." + (CapturaService.ultimoError?.let { "\n⚠ $it" } ?: "")
-            // Te lleva fuera de la app para que elijas qué grabar; aquí todavía no se graba nada.
+            btnGrabar.text = "✕ Cancelar"
+            estado.text = "Empieza a grabar en unos segundos…$aviso"
+            // Te lleva fuera de la app para que abras lo que quieres grabar.
             if (irAlFondoAlPreparar && hasWindowFocus()) { irAlFondoAlPreparar = false; moveTaskToBack(true) }
         } else if (CapturaService.activo) {
-            btnGrabar.text = "■ Detener  " + Ui.duracion((SystemClock.elapsedRealtime() - CapturaService.inicioMs) / 1000.0)
-            estado.text = "Grabando. Puedes cambiar de app: detén desde la notificación o el mosaico de Ajustes rápidos." + (CapturaService.ultimoError?.let { "\n⚠ $it" } ?: "")
+            val t = Ui.duracion(CapturaService.transcurridoMs() / 1000.0)
+            btnGrabar.text = "■ Terminar  $t"
+            btnPausa.text = if (CapturaService.pausado) "▶ Seguir" else "❚❚ Pausa"
+            estado.text = (if (CapturaService.pausado) "En pausa: lo que pase ahora no se graba." else "Grabando. Puedes cambiar de app.") + aviso
         } else {
-            btnGrabar.text = if (aj.botonFlotante) "● Preparar grabación" else "● Grabar"
+            btnGrabar.text = "● Grabar ahora"
             estado.text = CapturaService.ultimoError?.let { "⚠ $it" } ?: ""
         }
     }

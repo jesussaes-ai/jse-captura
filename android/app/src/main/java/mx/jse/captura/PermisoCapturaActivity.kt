@@ -25,7 +25,9 @@ class PermisoCapturaActivity : Activity() {
             val link = intent.getStringExtra(CapturaService.EXTRA_LINK)
             startForegroundService(Intent(this, CapturaService::class.java).setAction(CapturaService.ACCION_INICIAR)
                 .putExtra(CapturaService.EXTRA_RESULTADO, resultCode).putExtra(CapturaService.EXTRA_DATOS, data)
-                .putExtra(CapturaService.EXTRA_LINK, link))
+                .putExtra(CapturaService.EXTRA_LINK, link)
+                .putExtra(CapturaService.EXTRA_APP, intent.getStringExtra(CapturaService.EXTRA_APP))
+                .putExtra(CapturaService.EXTRA_CUENTA, intent.getIntExtra(CapturaService.EXTRA_CUENTA, 0)))
             // Grabar desde un link: se abre en su app (YouTube, navegador…) mientras esta ventana sigue al frente.
             if (link != null) runCatching {
                 startActivity(Intent(Intent.ACTION_VIEW, android.net.Uri.parse(link)).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))

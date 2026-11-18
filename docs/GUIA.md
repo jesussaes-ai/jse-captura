@@ -23,13 +23,13 @@ Apple no permite instalar apps fuera de la App Store sin firmarlas, así que se 
 
 ## 2. Primera grabación (sin NAS)
 - **Windows**: elige un monitor o una ventana, activa o desactiva el micrófono y el audio del sistema, y pulsa **● Grabar**. Mientras graba aparece un indicador flotante que no sale en el video. Atajos: `Ctrl+Shift+R` inicia o detiene la grabación y `Ctrl+Shift+M` marca un momento (se cambian en Ajustes).
-- **Android** (v0.2.0):
-  1. Pulsa **● Preparar grabación** y luego «Iniciar ahora». Todavía no graba nada.
-  2. La primera vez, Android pide «Mostrar sobre otras apps» para el botón flotante: actívalo y regresa.
-  3. La app se hace a un lado. Abre lo que quieras grabar (YouTube, el curso…) y toca el botón rojo flotante **● REC**: ahí empieza.
-  4. Mientras graba, el botón se vuelve un punto pequeño y transparente **■** (sale en el video, por eso es discreto). Tócalo para detener.
-  5. Al detener te pregunta **el nombre del archivo**; el MP4 se guarda con ese nombre y después se copia al NAS.
-  También puedes empezar o detener desde la notificación («● Empezar» / «■ Detener») o el mosaico de Ajustes rápidos.
+- **Android** (v0.4.0, un toque desde cualquier app):
+  1. Abre JSE Captura una vez: el botón rojo **● REC** queda flotando sobre todas las apps (la primera vez Android pide «Mostrar sobre otras apps»: actívalo y regresa).
+  2. Ve a la app que quieras (YouTube, Facebook, Zoom, tu reproductor…), pon tu video y toca **● REC**. Acepta «Iniciar ahora» y graba de inmediato.
+  3. Mientras graba, el botón se vuelve dos botones pequeños y transparentes: **❚❚** pausa / **▶** sigue y **■** termina. La pausa no queda en el video: todo sale en un solo MP4 continuo.
+  4. Al terminar te pregunta **el nombre del archivo**. Si das el permiso «Acceso de uso» (botón en la pantalla principal), el nombre propuesto lleva la app grabada, p. ej. «YouTube 2026-11-18 21:30».
+  También: **● Grabar ahora** en la app (empieza a los 3 s), la notificación (❚❚ Pausa / ■ Detener / ⚑ Marcar) o el mosaico de Ajustes rápidos. Para quitar el botón flotante: «Quitar botón» en su notificación o la casilla «Botón flotante».
+  Android exige aceptar «Iniciar ahora» en cada grabación (es una regla del sistema desde Android 14; ninguna app la puede saltar).
 - **Grabar desde un link** (Android y Windows, v0.3.0): pega o escribe el link en «🔗 Grabar desde un link» (o en Android usa *Compartir → JSE Captura* desde YouTube o el navegador) y toca **▶ Abrir y grabar**. El link se abre solo y la grabación empieza a los 3 segundos; se detiene como siempre. En Android, la primera vez de cada sesión hay que aceptar «Iniciar ahora».
 - **Ver en grande (Android)**: toca la miniatura de la grabación. Se abre a pantalla completa; **1:1** o doble toque la muestra a su tamaño original, pellizca para acercar y arrastra para moverte (útil para tablas y cursos).
 - **Audio sin eco (Android)**: por defecto se graba el **audio del teléfono** (lo que suena) y el micrófono va apagado. Si enciendes el micrófono para narrar, se activa la cancelación de eco; con audífonos queda mejor.

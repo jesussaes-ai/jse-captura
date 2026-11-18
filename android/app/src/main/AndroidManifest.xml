@@ -12,6 +12,11 @@
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <!-- Botón flotante ● REC sobre las demás apps (el usuario lo activa en Ajustes de Android) -->
     <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
+    <!-- Android 14+: servicio que mantiene el botón ● REC a la vista -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
+    <!-- Opcional: saber qué app se está grabando (YouTube, Zoom…) para ponerle nombre al archivo -->
+    <uses-permission android:name="android.permission.PACKAGE_USAGE_STATS"
+        xmlns:tools="http://schemas.android.com/tools" tools:ignore="ProtectedPermissions" />
     <!-- Galería en Android 10-12 sin permisos extra (MediaStore con IS_PENDING); nada de almacenamiento amplio -->
 
     <application
@@ -53,12 +58,22 @@
         <activity android:name=".NasActivity" android:exported="false" />
         <!-- Transparente: pide el consentimiento de captura del sistema (también desde el mosaico y la notificación) -->
         <activity android:name=".PermisoCapturaActivity" android:exported="false"
-            android:theme="@style/Tema.Transparente" android:excludeFromRecents="true" android:noHistory="true" />
+            android:theme="@style/Tema.Transparente" android:excludeFromRecents="true" android:noHistory="true"
+            android:taskAffinity="" />
 
         <service
             android:name=".CapturaService"
             android:exported="false"
             android:foregroundServiceType="mediaProjection|microphone" />
+
+        <!-- Botón flotante ● REC siempre a la vista sobre las demás apps -->
+        <service
+            android:name=".BurbujaService"
+            android:exported="false"
+            android:foregroundServiceType="specialUse">
+            <property android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
+                android:value="Botón flotante para empezar, pausar y terminar la grabación de pantalla desde cualquier app" />
+        </service>
 
         <!-- Mosaico de Ajustes rápidos: grabar / detener desde cualquier app -->
         <service

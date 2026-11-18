@@ -61,6 +61,7 @@ class Codificador(
     private var inicioSegmentoUs = -1L
     private var numSegmento = 0
     private var pidioClave = false
+    private var ultimoAudioUs = -1L
     private val bloqueo = Object()
     @Volatile private var corriendo = false
     private val grabadores = mutableListOf<AudioRecord>()
@@ -82,6 +83,27 @@ class Codificador(
         if (escribiendo) return
         escribiendo = true
         // El primer cuadro escrito debe ser clave: se pide uno ya para no esperar hasta 1 s.
+        runCatching { video.setParameters(Bundle().apply { putInt(MediaCodec.PARAMETER_KEY_REQUEST_SYNC_FRAME, 0) }) }
+    }
+
+    // ---- pausa ----
+    // Al pausar no se escribe nada. Al seguir, se espera un cuadro clave y todo lo que viene después se recorre
+    // hacia atrás el tiempo que duró la pausa: el MP4 queda continuo, sin hueco ni imagen congelada.
+    @Volatile var pausado = false; private set
+    private var reanudando = false
+    private var desfaseUs = 0L
+    private var ultimoCrudoUs = -1L
+    private var reanudaCrudoUs = Long.MAX_VALUE
+
+    fun pausar() = synchronized(bloqueo) {
+        if (!escribiendo || pausado) return@synchronized
+        pausado = true
+    }
+
+    fun reanudar() = synchronized(bloqueo) {
+        if (!pausado) return@synchronized
+        pausado = false
+        reanudando = true
         runCatching { video.setParameters(Bundle().apply { putInt(MediaCodec.PARAMETER_KEY_REQUEST_SYNC_FRAME, 0) }) }
     }
 
@@ -199,12 +221,25 @@ class Codificador(
                     val clave = info.flags and MediaCodec.BUFFER_FLAG_KEY_FRAME != 0
                     if (info.size > 0 && info.flags and MediaCodec.BUFFER_FLAG_CODEC_CONFIG == 0) {
                         synchronized(bloqueo) {
+                            val crudo = info.presentationTimeUs
+                            var escribir = escribiendo && !pausado
+                            if (escribir && reanudando) {
+                                if (!clave) escribir = false
+                                else {
+                                    // Primer cuadro después de la pausa: se quita el tiempo pausado.
+                                    if (ultimoCrudoUs >= 0) desfaseUs += crudo - ultimoCrudoUs - 1_000_000L / FPS
+                                    reanudando = false
+                                    reanudaCrudoUs = crudo
+                                }
+                            }
+                            info.presentationTimeUs = crudo - desfaseUs
                             // Rotar de segmento en un cuadro clave para que cada segmento sea reproducible solo.
-                            if (muxer != null && inicioSegmentoUs >= 0 && info.presentationTimeUs - inicioSegmentoUs >= SEGMENTO_US) {
+                            if (escribir && muxer != null && inicioSegmentoUs >= 0 && info.presentationTimeUs - inicioSegmentoUs >= SEGMENTO_US) {
                                 if (clave) { cerrarSegmento(); abrirSiListo() }
                                 else if (!pidioClave) { video.setParameters(Bundle().apply { putInt(MediaCodec.PARAMETER_KEY_REQUEST_SYNC_FRAME, 0) }); pidioClave = true }
                             }
-                            if (escribiendo && muxer != null && (inicioSegmentoUs >= 0 || clave)) {
+                            if (escribir && muxer != null && (inicioSegmentoUs >= 0 || clave)) {
+                                ultimoCrudoUs = crudo
                                 if (inicioSegmentoUs < 0) inicioSegmentoUs = info.presentationTimeUs
                                 if (primerPtsUs < 0) primerPtsUs = info.presentationTimeUs
                                 ultimoPtsUs = max(ultimoPtsUs, info.presentationTimeUs)
@@ -253,7 +288,14 @@ class Codificador(
             if (o == MediaCodec.INFO_OUTPUT_FORMAT_CHANGED) synchronized(bloqueo) { formatoAudio = a.outputFormat; abrirSiListo() }
             else if (o >= 0) {
                 if (info.size > 0 && info.flags and MediaCodec.BUFFER_FLAG_CODEC_CONFIG == 0) synchronized(bloqueo) {
-                    if (muxer != null && inicioSegmentoUs >= 0 && info.presentationTimeUs >= inicioSegmentoUs) muxer!!.writeSampleData(pistaA, a.getOutputBuffer(o)!!, info)
+                    val crudo = info.presentationTimeUs
+                    // En pausa solo pasa el audio de antes de pausar; al seguir, solo el de después del cuadro clave.
+                    val vale = if (pausado || reanudando) crudo <= ultimoCrudoUs else crudo >= reanudaCrudoUs || reanudaCrudoUs == Long.MAX_VALUE
+                    info.presentationTimeUs = crudo - desfaseUs
+                    if (vale && muxer != null && inicioSegmentoUs >= 0 && info.presentationTimeUs >= inicioSegmentoUs && info.presentationTimeUs > ultimoAudioUs) {
+                        muxer!!.writeSampleData(pistaA, a.getOutputBuffer(o)!!, info)
+                        ultimoAudioUs = info.presentationTimeUs
+                    }
                 }
                 a.releaseOutputBuffer(o, false)
                 if (info.flags and MediaCodec.BUFFER_FLAG_END_OF_STREAM != 0) return
