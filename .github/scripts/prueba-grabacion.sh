@@ -90,13 +90,13 @@ fi
 adb shell am start -W -n $P/.MainActivity >/dev/null; sleep 3
 volcar; grep -q 'text="Curso de prueba"' /tmp/g.xml && bien "la lista muestra «Curso de prueba»" || mal "la lista no muestra el nombre"
 tocar "Ver «Curso de prueba»" && sleep 4
-adb shell input keyevent KEYCODE_MEDIA_PAUSE; sleep 2   # en pausa la pantalla queda quieta y se puede leer
-rm -f /tmp/g.xml; volcar; adb exec-out screencap -p > pantallas/4-pantalla-completa.png
+adb shell input keyevent KEYCODE_SPACE; sleep 2   # en pausa la pantalla queda quieta y se puede leer
+rm -f /tmp/g.xml; adb shell uiautomator dump /sdcard/ui.xml; adb pull /sdcard/ui.xml /tmp/g.xml >/dev/null 2>&1; grep -oE 'text="[^"]+"' /tmp/g.xml | head -12 | tr "\n" " "; echo; adb exec-out screencap -p > pantallas/4-pantalla-completa.png
 cp /tmp/g.xml pantallas/4-pantalla-completa.xml
 grep -q "text=\"JSE Captura v$VER\"" /tmp/g.xml && bien "pantalla completa con v$VER" || mal "pantalla completa sin la versión"
 adb shell dumpsys activity activities | grep -q 'PantallaCompletaActivity' && bien "abrió la pantalla completa" || mal "no abrió la pantalla completa"
 TAM=$(adb shell wm size | sed 's/.*: //' | tr -d '\r'); W=${TAM%x*}; H=${TAM#*x}
-adb shell input keyevent KEYCODE_MEDIA_PAUSE; sleep 1; volcar
+sleep 1; volcar
 tocar "1:1" && { sleep 1; adb exec-out screencap -p > pantallas/5-tamano-original.png; bien "tamaño original 1:1"; } || true
 
 if ! adb shell pidof $P >/dev/null; then mal "la app se cerró"; fi
