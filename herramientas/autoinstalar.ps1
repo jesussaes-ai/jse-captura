@@ -1,4 +1,4 @@
-<#
+﻿<#
   JSE Captura · auto-instalador (corre en la PC de Jesús como tarea programada cada 15 minutos).
 
   Qué hace, sin preguntar nada:
