@@ -14,6 +14,7 @@ class App : Application() {
         nm.createNotificationChannel(NotificationChannel(CANAL_AVISOS, "Avisos", NotificationManager.IMPORTANCE_DEFAULT).apply {
             description = "Grabación guardada, copias al NAS y errores"
         })
+        Ajustes(this).migrar()
         Biblioteca.iniciar(this)
         // Grabaciones que quedaron a medias por un cierre inesperado.
         Thread { Recuperacion.recuperar(this) }.start()

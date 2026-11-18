@@ -16,6 +16,7 @@ import java.io.File
 import java.time.Instant
 
 /** Reproductor con marcas, edición de título/notas/etiquetas, compartir, recortar y borrado por ubicación. */
+@android.annotation.SuppressLint("ClickableViewAccessibility")
 class ReproductorActivity : AppCompatActivity() {
     private lateinit var g: Grabacion
     private lateinit var video: VideoView
@@ -28,15 +29,22 @@ class ReproductorActivity : AppCompatActivity() {
         val c = this
         val col = Ui.columna(c).apply { setPadding(Ui.dp(c, 12), Ui.dp(c, 12), Ui.dp(c, 12), Ui.dp(c, 12)) }
         val titulo = EditText(c).apply { setText(g.titulo); textSize = 18f; setTextColor(Ui.TEXTO)
-            setOnFocusChangeListener { _, f -> if (!f) guardar { g.titulo = text.toString().ifBlank { g.titulo } } } }
+            setOnFocusChangeListener { _, f -> if (!f && text.isNotBlank() && text.toString() != g.titulo) { Biblioteca.renombrar(g.id, text.toString()); Sincronizar.ahora(c) } } }
         col.addView(titulo)
         video = VideoView(c)
         if (g.archivo != null && File(g.archivo!!).exists()) {
             video.setVideoPath(g.archivo)
             video.setMediaController(MediaController(c).also { it.setAnchorView(video) })
             video.setOnPreparedListener { it.start() }
+            // Un toque al video lo abre a pantalla completa en el mismo punto.
+            video.setOnTouchListener { v, e -> if (e.action == android.view.MotionEvent.ACTION_UP) { v.performClick(); pantallaCompleta() }; true }
         }
-        col.addView(video, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, Ui.dp(c, 260)))
+        // Alto según la proporción real del video (antes era una franja fija de 260 dp).
+        val m = resources.displayMetrics
+        val alto = if (g.ancho > 0 && g.alto > 0) ((m.widthPixels - Ui.dp(c, 24)) * g.alto / g.ancho).coerceAtMost((m.heightPixels * 0.6).toInt()) else Ui.dp(c, 260)
+        col.addView(video, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, alto))
+        col.addView(Ui.boton(c, "⛶ Pantalla completa · tamaño original", true) { pantallaCompleta() },
+            LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT).apply { topMargin = Ui.dp(c, 6) })
         marcas = LinearLayout(c).apply { orientation = LinearLayout.HORIZONTAL }
         col.addView(android.widget.HorizontalScrollView(c).apply { addView(marcas) })
         pintarMarcas()
@@ -70,6 +78,13 @@ class ReproductorActivity : AppCompatActivity() {
             Ui.boton(c, "Borrar del teléfono…") { borrarLocal() },
             Ui.boton(c, "Borrar del NAS…") { borrarNas() }))
         setContentView(Ui.conVersion(c, ScrollView(c).apply { addView(col) }))
+    }
+
+    private fun pantallaCompleta() {
+        if (g.archivo == null) return
+        val pos = video.currentPosition
+        video.pause()
+        startActivity(Intent(this, PantallaCompletaActivity::class.java).putExtra("id", g.id).putExtra("pos", pos))
     }
 
     private fun guardar(cambio: () -> Unit) {

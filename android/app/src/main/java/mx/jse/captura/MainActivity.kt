@@ -6,6 +6,8 @@ import android.content.pm.PackageManager
 import android.graphics.BitmapFactory
 import android.os.Build
 import android.os.Bundle
+import android.net.Uri
+import android.provider.Settings
 import android.os.Handler
 import android.os.Looper
 import android.os.SystemClock
@@ -43,7 +45,7 @@ class MainActivity : AppCompatActivity() {
     private val oyenteBib: () -> Unit = { h.post { refrescar() } }
     private val oyenteCaptura: () -> Unit = { pintarEstado() }
     private val reloj = object : Runnable {
-        override fun run() { pintarEstado(); if (CapturaService.activo) h.postDelayed(this, 500) }
+        override fun run() { pintarEstado(); if (CapturaService.activo || CapturaService.preparado) h.postDelayed(this, 500) }
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -65,15 +67,20 @@ class MainActivity : AppCompatActivity() {
             check(if (aj.calidad == "720") r720.id else r1080.id)
             setOnCheckedChangeListener { _, id -> aj.calidad = if (id == r720.id) "720" else "1080"; pintarResumen() }
         }
-        val mic = CheckBox(c).apply { text = "Micrófono"; setTextColor(Ui.TEXTO); isChecked = aj.microfono
+        val mic = CheckBox(c).apply { text = "Micrófono (tu voz)"; setTextColor(Ui.TEXTO); isChecked = aj.microfono
             setOnCheckedChangeListener { _, v -> aj.microfono = v; if (v) pedirAudio(); pintarResumen() } }
-        val interno = CheckBox(c).apply { text = "Audio interno (si la app lo permite)"; setTextColor(Ui.TEXTO); isChecked = aj.audioInterno
+        val interno = CheckBox(c).apply { text = "Audio del teléfono"; setTextColor(Ui.TEXTO); isChecked = aj.audioInterno
             setOnCheckedChangeListener { _, v -> aj.audioInterno = v; if (v) pedirAudio(); pintarResumen() } }
+        val flotante = CheckBox(c).apply { text = "Botón flotante"; setTextColor(Ui.TEXTO); isChecked = aj.botonFlotante
+            setOnCheckedChangeListener { _, v -> aj.botonFlotante = v; if (v && !Settings.canDrawOverlays(c)) pedirSobreApps(); pintarEstado(); pintarResumen() } }
+        val nombre = CheckBox(c).apply { text = "Pedir nombre al terminar"; setTextColor(Ui.TEXTO); isChecked = aj.pedirNombre
+            setOnCheckedChangeListener { _, v -> aj.pedirNombre = v } }
         resumen = Ui.texto(c, "", 13f, Ui.SUTIL)
         btnGrabar = Ui.boton(c, "● Grabar", true) { alternar() }.apply { textSize = 18f }
         estado = Ui.texto(c, "", 14f, Ui.TEXTO)
         raiz.addView(calidad)
-        raiz.addView(Ui.fila(c, mic, interno))
+        raiz.addView(Ui.fila(c, interno, mic))
+        raiz.addView(Ui.fila(c, flotante, nombre))
         raiz.addView(resumen)
         raiz.addView(btnGrabar, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT).apply { topMargin = Ui.dp(c, 8) })
         raiz.addView(estado)
@@ -105,7 +112,7 @@ class MainActivity : AppCompatActivity() {
         Biblioteca.alCambiar(oyenteBib)
         CapturaService.oyentes.add(oyenteCaptura)
         refrescar(); pintarEstado()
-        if (CapturaService.activo) h.post(reloj)
+        if (CapturaService.activo || CapturaService.preparado) h.post(reloj)
     }
 
     override fun onPause() {
@@ -133,25 +140,50 @@ class MainActivity : AppCompatActivity() {
         val audio = listOfNotNull(if (aj.microfono) "micrófono" else null, if (aj.audioInterno) "audio interno" else null)
         resumen.text = "Se grabará: pantalla (o la app que elijas en Android 14+) · ${if (aj.calidad == "720") "720p" else "hasta 1080p"} · 30 fps · " +
             (if (audio.isEmpty()) "🔇 sin audio" else "🔊 " + audio.joinToString(" + ")) +
-            (if (aj.audioInterno) "\nAlgunas apps (Netflix, WhatsApp, llamadas) no permiten capturar su audio." else "")
+            (if (aj.audioInterno) "\nAlgunas apps (Netflix, WhatsApp, llamadas) no permiten capturar su audio." else "") +
+            (if (aj.microfono && aj.audioInterno) "\nCon micrófono y audio del teléfono a la vez se activa la cancelación de eco; con audífonos se oye mejor." else "") +
+            (if (aj.botonFlotante) "\nCon botón flotante: Preparar → abre lo que quieras grabar → toca ● REC. Tócalo otra vez para detener." else "")
     }
 
     private fun alternar() {
-        if (CapturaService.activo) CapturaService.detener(this)
+        if (CapturaService.activo || CapturaService.preparado) CapturaService.detener(this)
         else {
             CapturaService.ultimoError = null
             if ((aj.microfono || aj.audioInterno) && checkSelfPermission(Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) { pedirAudio(); return }
+            if (aj.botonFlotante && !Settings.canDrawOverlays(this)) { pedirSobreApps(); return }
+            irAlFondoAlPreparar = aj.botonFlotante
             startActivity(Intent(this, PermisoCapturaActivity::class.java))
             h.postDelayed(reloj, 800)
         }
     }
 
+    /** El botón flotante necesita «Mostrar sobre otras apps»; Android solo lo deja activar desde sus Ajustes. */
+    private fun pedirSobreApps() {
+        android.app.AlertDialog.Builder(this)
+            .setTitle("Permitir el botón flotante")
+            .setMessage("Para que el botón ● REC flote sobre YouTube y las demás apps, activa «Mostrar sobre otras apps» para JSE Captura en la pantalla que se abre y regresa.\n\nSin ese permiso puedes empezar desde la notificación («● Empezar»).")
+            .setPositiveButton("Abrir permiso") { _, _ ->
+                runCatching { startActivity(Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION, Uri.parse("package:$packageName"))) }
+            }
+            .setNegativeButton("Sin botón flotante") { _, _ ->
+                aj.botonFlotante = false; recreate()
+            }.show()
+    }
+
+    private var irAlFondoAlPreparar = false
+
     private fun pintarEstado() {
-        if (CapturaService.activo) {
+        if (CapturaService.preparado) {
+            btnGrabar.text = "✕ Cancelar (aún no graba)"
+            estado.text = "Listo. Abre lo que quieras grabar (YouTube, el curso…) y toca el botón flotante ● REC para empezar. " +
+                "Tócalo otra vez para detener." + (CapturaService.ultimoError?.let { "\n⚠ $it" } ?: "")
+            // Te lleva fuera de la app para que elijas qué grabar; aquí todavía no se graba nada.
+            if (irAlFondoAlPreparar && hasWindowFocus()) { irAlFondoAlPreparar = false; moveTaskToBack(true) }
+        } else if (CapturaService.activo) {
             btnGrabar.text = "■ Detener  " + Ui.duracion((SystemClock.elapsedRealtime() - CapturaService.inicioMs) / 1000.0)
             estado.text = "Grabando. Puedes cambiar de app: detén desde la notificación o el mosaico de Ajustes rápidos." + (CapturaService.ultimoError?.let { "\n⚠ $it" } ?: "")
         } else {
-            btnGrabar.text = "● Grabar"
+            btnGrabar.text = if (aj.botonFlotante) "● Preparar grabación" else "● Grabar"
             estado.text = CapturaService.ultimoError?.let { "⚠ $it" } ?: ""
         }
     }
@@ -186,6 +218,9 @@ class MainActivity : AppCompatActivity() {
             vh.v.removeAllViews()
             val img = ImageView(c).apply { scaleType = ImageView.ScaleType.CENTER_CROP; setBackgroundColor(0xFF000000.toInt())
                 g.miniatura?.let { if (File(it).exists()) setImageBitmap(BitmapFactory.decodeFile(it)) } }
+            // Tocar la miniatura abre el video a pantalla completa (tamaño original con «1:1» o pellizcando).
+            if (g.archivo != null) img.setOnClickListener { startActivity(Intent(c, PantallaCompletaActivity::class.java).putExtra("id", g.id)) }
+            img.contentDescription = "Ver «${g.titulo}» a pantalla completa"
             vh.v.addView(img, LinearLayout.LayoutParams(Ui.dp(c, 120), Ui.dp(c, 68)))
             val info = Ui.columna(c).apply { setPadding(Ui.dp(c, 10), 0, 0, 0) }
             info.addView(Ui.texto(c, (if (g.favorito) "★ " else "") + g.titulo + (if (g.recuperada) " · recuperada" else "") + (if (g.recorteDe != null) " · recorte" else ""), 15f, Ui.TEXTO, true))

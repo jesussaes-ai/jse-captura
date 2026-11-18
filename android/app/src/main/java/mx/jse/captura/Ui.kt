@@ -88,9 +88,10 @@ object Ui {
         }
     }
 
-    fun avisoSistema(ctx: Context, titulo: String, texto: String) {
+    fun avisoSistema(ctx: Context, titulo: String, texto: String, alTocar: android.app.PendingIntent? = null) {
         val n = Notification.Builder(ctx, App.CANAL_AVISOS).setSmallIcon(R.drawable.ic_rec).setContentTitle(titulo)
-            .setContentText(texto).setStyle(Notification.BigTextStyle().bigText(texto)).setAutoCancel(true).build()
+            .setContentText(texto).setStyle(Notification.BigTextStyle().bigText(texto)).setAutoCancel(true)
+            .apply { alTocar?.let { setContentIntent(it) } }.build()
         runCatching { ctx.getSystemService(NotificationManager::class.java).notify(titulo.hashCode(), n) }
     }
 }

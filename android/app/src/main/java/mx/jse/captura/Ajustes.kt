@@ -15,9 +15,13 @@ class Ajustes(ctx: Context) {
     private val p = ctx.getSharedPreferences("ajustes", Context.MODE_PRIVATE)
 
     var calidad: String get() = p.getString("calidad", "1080")!!; set(v) = p.edit().putString("calidad", v).apply()
-    var microfono: Boolean get() = p.getBoolean("microfono", true); set(v) = p.edit().putBoolean("microfono", v).apply()
+    // Por defecto: audio interno encendido (YouTube, cursos…) y micrófono apagado, para que no haya eco.
+    // El micrófono se enciende cuando quieras narrar (mejor con audífonos).
+    var microfono: Boolean get() = p.getBoolean("microfono", false); set(v) = p.edit().putBoolean("microfono", v).apply()
     var audioInterno: Boolean get() = p.getBoolean("audioInterno", true); set(v) = p.edit().putBoolean("audioInterno", v).apply()
     var galeria: Boolean get() = p.getBoolean("galeria", false); set(v) = p.edit().putBoolean("galeria", v).apply()
+    var botonFlotante: Boolean get() = p.getBoolean("botonFlotante", true); set(v) = p.edit().putBoolean("botonFlotante", v).apply()
+    var pedirNombre: Boolean get() = p.getBoolean("pedirNombre", true); set(v) = p.edit().putBoolean("pedirNombre", v).apply()
     var direccion: String get() = p.getString("direccion", "")!!; set(v) = p.edit().putString("direccion", v).apply()
     var usuario: String get() = p.getString("usuario", "jse-captura")!!; set(v) = p.edit().putString("usuario", v).apply()
     var carpeta: String get() = p.getString("carpeta", "")!!; set(v) = p.edit().putString("carpeta", v).apply()
@@ -26,6 +30,13 @@ class Ajustes(ctx: Context) {
     var token: String?
         get() = p.getString("token", null)?.let { descifrar(it) }
         set(v) { if (v == null) p.edit().remove("token").apply() else p.edit().putString("token", cifrar(v)).apply() }
+
+    /** v0.2.0: quienes tenían el micrófono encendido por defecto pasan a solo audio interno (quita el eco). */
+    fun migrar() {
+        if (p.getInt("versionAjustes", 1) < 2) {
+            p.edit().putBoolean("microfono", false).putBoolean("audioInterno", true).putInt("versionAjustes", 2).apply()
+        }
+    }
 
     fun nasConfigurado() = direccion.isNotBlank() && token != null
 

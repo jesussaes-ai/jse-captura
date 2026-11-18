@@ -10,8 +10,8 @@ import android.service.quicksettings.TileService
 class MosaicoService : TileService() {
     override fun onStartListening() {
         qsTile?.apply {
-            state = if (CapturaService.activo) Tile.STATE_ACTIVE else Tile.STATE_INACTIVE
-            label = if (CapturaService.activo) "Detener" else "Grabar pantalla"
+            state = if (CapturaService.activo || CapturaService.preparado) Tile.STATE_ACTIVE else Tile.STATE_INACTIVE
+            label = if (CapturaService.activo) "Detener" else if (CapturaService.preparado) "Empezar" else "Grabar pantalla"
             if (Build.VERSION.SDK_INT >= 29) subtitle = "JSE Captura"
             updateTile()
         }
@@ -21,6 +21,7 @@ class MosaicoService : TileService() {
     @android.annotation.SuppressLint("StartActivityAndCollapseDeprecated")
     override fun onClick() {
         if (CapturaService.activo) { CapturaService.detener(this); return }
+        if (CapturaService.preparado) { CapturaService.empezar(this); return }
         val i = Intent(this, PermisoCapturaActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
         if (Build.VERSION.SDK_INT >= 34) startActivityAndCollapse(PendingIntent.getActivity(this, 0, i, PendingIntent.FLAG_IMMUTABLE))
         else @Suppress("DEPRECATION") startActivityAndCollapse(i)

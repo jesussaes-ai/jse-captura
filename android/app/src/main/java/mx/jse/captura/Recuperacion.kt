@@ -14,7 +14,7 @@ object Recuperacion {
             .sortedBy { it.name }.filter { !recuperada || it.name in listos }
         if (segs.isEmpty()) return null
         val titulo = s.optString("titulo", "Grabación")
-        val nombre = "${s.optString("creadoLocal").replace('T', ' ').replace(':', '.')} ${Ui.nombreSeguro(titulo)}.mp4"
+        val nombre = Biblioteca.nombreArchivo(s.optString("creadoLocal"), titulo)
         val destino = File(Biblioteca.videos, nombre)
         return try {
             Medios.unir(segs, destino)
@@ -41,11 +41,13 @@ object Recuperacion {
     }
 
     fun recuperar(ctx: Context) {
-        if (CapturaService.activo) return
+        if (CapturaService.activo || CapturaService.preparado) return
         val dirs = Biblioteca.temporales.listFiles { f -> f.isDirectory } ?: return
         for (d in dirs) {
             val id = d.name
             if (Biblioteca.obtener(id) != null) { d.deleteRecursively(); continue }
+            // Se preparó pero nunca se empezó a grabar: no hay nada que recuperar.
+            if (!File(d, "sesion.json").exists()) { d.deleteRecursively(); continue }
             val g = finalizarSesion(ctx, d, recuperada = true)
             if (g != null) Ui.avisoSistema(ctx, "Grabación recuperada", "Se recuperaron ${Ui.duracion(g.duracion)} de «${g.titulo}», que se interrumpió.")
             else if (File(d, "sesion.json").exists()) Ui.avisoSistema(ctx, "No se pudo recuperar una grabación", "La grabación se interrumpió antes de completar el primer minuto; no hay partes válidas. Los archivos quedaron en «Grabando».")

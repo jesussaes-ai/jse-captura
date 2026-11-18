@@ -10,6 +10,8 @@
     <!-- Solo se pide cuando el usuario activa el micrófono o el audio interno -->
     <uses-permission android:name="android.permission.RECORD_AUDIO" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <!-- Botón flotante ● REC sobre las demás apps (el usuario lo activa en Ajustes de Android) -->
+    <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
     <!-- Galería en Android 10-12 sin permisos extra (MediaStore con IS_PENDING); nada de almacenamiento amplio -->
 
     <application
@@ -34,6 +36,14 @@
         <activity android:name=".ReproductorActivity" android:exported="false"
             android:configChanges="orientation|screenSize|screenLayout|keyboardHidden" />
         <activity android:name=".AjustesActivity" android:exported="false" />
+        <!-- Pantalla completa para leer tablas y cursos: gira sin reiniciar el video -->
+        <activity android:name=".PantallaCompletaActivity" android:exported="false"
+            android:theme="@style/Tema.Negro"
+            android:configChanges="orientation|screenSize|screenLayout|smallestScreenSize|keyboardHidden" />
+        <!-- Pide el nombre del archivo al detener (se abre desde el botón flotante sin traer la app al frente) -->
+        <activity android:name=".NombrarActivity" android:exported="false"
+            android:theme="@style/Tema.Transparente" android:excludeFromRecents="true" android:taskAffinity=""
+            android:launchMode="singleTask" />
         <activity android:name=".NasActivity" android:exported="false" />
         <!-- Transparente: pide el consentimiento de captura del sistema (también desde el mosaico y la notificación) -->
         <activity android:name=".PermisoCapturaActivity" android:exported="false"

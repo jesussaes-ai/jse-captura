@@ -152,6 +152,26 @@ object Biblioteca {
         }.sortedByDescending { it.creado }
     }
 
+    /** Nombre del MP4 en disco: fecha + título (igual que al guardar). */
+    fun nombreArchivo(creadoLocal: String, titulo: String) =
+        "${creadoLocal.replace('T', ' ').replace(':', '.')} ${Ui.nombreSeguro(titulo)}.mp4"
+
+    /** Cambia el título y, si no se está copiando en ese momento, también el nombre del MP4 en el teléfono. */
+    fun renombrar(id: String, titulo: String): Grabacion? {
+        val g = obtener(id) ?: return null
+        val t = titulo.trim().ifEmpty { return g }
+        g.titulo = t
+        val actual = g.archivo?.let { File(it) }
+        if (actual != null && actual.exists() && g.destinos["nas"]?.estado != "copiando") {
+            var nuevo = File(actual.parentFile, nombreArchivo(g.creadoLocal, t))
+            if (nuevo.exists() && nuevo != actual) nuevo = File(actual.parentFile, nuevo.nameWithoutExtension + " ${g.id.take(4)}.mp4")
+            if (nuevo != actual && actual.renameTo(nuevo)) g.archivo = nuevo.path
+        }
+        if (g.destinos["nas"]?.estado == "guardado") g.metaPendiente = true
+        guardar()
+        return g
+    }
+
     /** Borra solo la copia del teléfono. La del NAS y la de la galería no se tocan. */
     fun borrarLocal(id: String): Boolean {
         val g = obtener(id) ?: return false

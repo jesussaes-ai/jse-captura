@@ -42,6 +42,8 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/download-artifact@v4
         with: { name: JSE-Captura-Android, path: apk }
+      - name: ffprobe (para revisar el MP4 grabado)
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg
       - name: KVM
         run: |
           echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
@@ -52,7 +54,7 @@ jobs:
           target: google_apis
           arch: x86_64
           disable-animations: true
-          script: bash .github/scripts/prueba-pantalla.sh apk
+          script: bash .github/scripts/prueba-pantalla.sh apk; r=$?; bash .github/scripts/prueba-grabacion.sh apk; exit $(( r | $? ))
       - uses: actions/upload-artifact@v4
         if: always()
         with: { name: pantallas-android, path: pantallas, retention-days: 14 }

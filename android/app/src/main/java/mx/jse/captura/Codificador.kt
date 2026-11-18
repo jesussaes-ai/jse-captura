@@ -10,6 +10,8 @@ import android.media.MediaCodecInfo
 import android.media.MediaFormat
 import android.media.MediaMuxer
 import android.media.MediaRecorder
+import android.media.audiofx.AcousticEchoCanceler
+import android.media.audiofx.NoiseSuppressor
 import android.media.projection.MediaProjection
 import android.os.Bundle
 import android.util.Log
@@ -70,6 +72,19 @@ class Codificador(
     var ultimoPtsUs = 0L; private set
     val conAudio get() = audio != null
 
+    /**
+     * Mientras es falso, la captura ya está lista (permiso, codificadores, audio) pero no se escribe nada:
+     * así la grabación empieza justo cuando tocas el botón flotante y no desde que aceptas el permiso.
+     */
+    @Volatile var escribiendo = false; private set
+
+    fun empezar() {
+        if (escribiendo) return
+        escribiendo = true
+        // El primer cuadro escrito debe ser clave: se pide uno ya para no esperar hasta 1 s.
+        runCatching { video.setParameters(Bundle().apply { putInt(MediaCodec.PARAMETER_KEY_REQUEST_SYNC_FRAME, 0) }) }
+    }
+
     @SuppressLint("MissingPermission")
     fun iniciar() {
         val fv = MediaFormat.createVideoFormat(MediaFormat.MIMETYPE_VIDEO_AVC, ancho, alto).apply {
@@ -95,8 +110,16 @@ class Codificador(
         superficie = video.createInputSurface()
 
         // ---- audio ----
-        if (microfono) crearGrabador(MediaRecorder.AudioSource.MIC, null)?.let { grabadores.add(it) }
-            ?: run { avisoAudio = "No se pudo abrir el micrófono; la grabación va sin él." }
+        // Eco: si se graban a la vez el audio interno y el micrófono, el micrófono también oye la bocina y el
+        // sonido sale dos veces con retraso. Con ambos se usa la fuente de voz (cancelación de eco y ruido del
+        // teléfono); con solo micrófono, la fuente normal (mejor calidad).
+        if (microfono) {
+            val fuente = if (audioInterno) MediaRecorder.AudioSource.VOICE_COMMUNICATION else MediaRecorder.AudioSource.MIC
+            crearGrabador(fuente, null)?.let { r ->
+                grabadores.add(r)
+                if (audioInterno) limpiarVoz(r.audioSessionId)
+            } ?: run { avisoAudio = "No se pudo abrir el micrófono; la grabación va sin él." }
+        }
         if (audioInterno && proyeccion != null) {
             val conf = AudioPlaybackCaptureConfiguration.Builder(proyeccion)
                 .addMatchingUsage(AudioAttributes.USAGE_MEDIA)
@@ -136,16 +159,31 @@ class Codificador(
         Log.w(TAG, "AudioRecord", e); null
     }
 
+    private val efectos = mutableListOf<android.media.audiofx.AudioEffect>()
+
+    /** Cancelación de eco y supresión de ruido del propio teléfono, si las tiene. */
+    private fun limpiarVoz(sesion: Int) {
+        runCatching { if (AcousticEchoCanceler.isAvailable()) AcousticEchoCanceler.create(sesion)?.let { it.enabled = true; efectos.add(it) } }
+        runCatching { if (NoiseSuppressor.isAvailable()) NoiseSuppressor.create(sesion)?.let { it.enabled = true; efectos.add(it) } }
+    }
+
     /** Marca para finalizar: el siguiente bloque de datos sale con fin de flujo. */
     fun detener() {
         corriendo = false
         runCatching { video.signalEndOfInputStream() }
         hiloAudio?.join(3000)
         hiloVideo?.join(5000)
-        synchronized(bloqueo) { if (muxer != null) cerrarSegmento() }
+        synchronized(bloqueo) {
+            if (muxer != null) { if (inicioSegmentoUs >= 0) cerrarSegmento() else {
+                // Segmento abierto sin ningún cuadro (se canceló antes de empezar): se descarta.
+                runCatching { muxer?.release() }; muxer = null
+                segmentos.removeLastOrNull()?.delete()
+            } }
+        }
         runCatching { video.stop(); video.release() }
         runCatching { audio?.stop(); audio?.release() }
         grabadores.forEach { runCatching { it.stop(); it.release() } }
+        efectos.forEach { runCatching { it.release() } }
         runCatching { superficie.release() }
     }
 
@@ -165,7 +203,7 @@ class Codificador(
                                 if (clave) { cerrarSegmento(); abrirSiListo() }
                                 else if (!pidioClave) { video.setParameters(Bundle().apply { putInt(MediaCodec.PARAMETER_KEY_REQUEST_SYNC_FRAME, 0) }); pidioClave = true }
                             }
-                            if (muxer != null && (inicioSegmentoUs >= 0 || clave)) {
+                            if (escribiendo && muxer != null && (inicioSegmentoUs >= 0 || clave)) {
                                 if (inicioSegmentoUs < 0) inicioSegmentoUs = info.presentationTimeUs
                                 if (primerPtsUs < 0) primerPtsUs = info.presentationTimeUs
                                 ultimoPtsUs = max(ultimoPtsUs, info.presentationTimeUs)
