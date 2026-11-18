@@ -26,7 +26,7 @@ for act in MainActivity AjustesActivity NasActivity; do
   adb shell uiautomator dump /sdcard/ui.xml >/dev/null
   adb pull /sdcard/ui.xml "pantallas/$act.xml" >/dev/null
   # Versión visible y en la mitad derecha
-  linea=$(grep -oE "text=\"v$VER\"[^>]*bounds=\"\[[0-9]+,[0-9]+\]\[[0-9]+,[0-9]+\]\"" "pantallas/$act.xml" || true)
+  linea=$(grep -oE "text=\"JSE Captura v$VER\"[^>]*bounds=\"\[[0-9]+,[0-9]+\]\[[0-9]+,[0-9]+\]\"" "pantallas/$act.xml" || true)
   if [ -z "$linea" ]; then echo "✗ $act: no se ve la versión v$VER"; fallos=1; else
     x1=$(echo "$linea" | grep -oE 'bounds="\[[0-9]+' | grep -oE '[0-9]+$')
     y1=$(echo "$linea" | grep -oE 'bounds="\[[0-9]+,[0-9]+' | grep -oE '[0-9]+$')

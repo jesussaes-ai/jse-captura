@@ -36,8 +36,7 @@ class NombrarActivity : Activity() {
         val caja = LinearLayout(c).apply {
             orientation = LinearLayout.VERTICAL
             setPadding(Ui.dp(c, 20), Ui.dp(c, 4), Ui.dp(c, 20), 0)
-            addView(TextView(c).apply { text = "v${BuildConfig.VERSION_NAME}"; textSize = 11f; setTextColor(Ui.SUTIL); gravity = Gravity.END; tag = "version" },
-                LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT))
+            addView(Ui.marca(c, 11f), LinearLayout.LayoutParams(LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT).apply { gravity = Gravity.END })
             addView(TextView(c).apply { text = "${Ui.duracion(g.duracion)} · ${Ui.tamano(g.tamano)} · ${g.audio}"; textSize = 13f })
             addView(campo)
         }

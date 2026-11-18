@@ -66,3 +66,6 @@ details{margin:10px 0}summary{cursor:pointer;color:var(--azul)}
 details input[type=number]{width:90px;display:inline-block}
 .destinos{display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin:8px 0}
 code{background:var(--panel);padding:1px 5px;border-radius:4px}
+
+.marca{display:flex;align-items:center;gap:6px;white-space:nowrap}
+.marca .logo{flex:none;border-radius:4px}

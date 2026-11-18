@@ -121,9 +121,9 @@ function mostrarIndicador() {
   if (indicador && !indicador.isDestroyed()) return indicador.showInactive();
   const area = screen.getPrimaryDisplay().workArea;
   indicador = new BrowserWindow({
-    width: 300,
+    width: 360,
     height: 56,
-    x: area.x + area.width - 320,
+    x: area.x + area.width - 380,
     y: area.y + 16,
     frame: false,
     resizable: false,

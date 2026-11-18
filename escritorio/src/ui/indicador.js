@@ -1,6 +1,6 @@
 /* global jse */
 const ini = Date.now();
-document.getElementById('v').textContent = 'v' + decodeURIComponent(location.hash.slice(1));
+document.getElementById('v').textContent = 'JSE Captura v' + decodeURIComponent(location.hash.slice(1));
 const z = (n) => String(n).padStart(2, '0');
 setInterval(() => {
   const s = Math.floor((Date.now() - ini) / 1000);

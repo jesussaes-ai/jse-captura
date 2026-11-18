@@ -29,8 +29,17 @@ struct Raiz: View {
         }
         // Versión arriba a la derecha en todas las pantallas.
         .overlay(alignment: .topTrailing) {
-            Text("v\(Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "?")")
-                .font(.caption2.monospacedDigit()).foregroundStyle(.secondary).padding(.trailing, 10).padding(.top, 2).allowsHitTesting(false)
+            // Logotipo + nombre + versión (regla de Jesús).
+            HStack(spacing: 4) {
+                ZStack {
+                    Circle().fill(Color(red: 0.06, green: 0.08, blue: 0.09))
+                    Circle().stroke(Color(red: 0.91, green: 0.93, blue: 0.95), lineWidth: 1.2).padding(3)
+                    Circle().fill(Color(red: 1, green: 0.23, blue: 0.19)).padding(5)
+                }.frame(width: 14, height: 14)
+                Text("JSE Captura v\(Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "?")")
+                    .font(.caption2.monospacedDigit()).foregroundStyle(.secondary)
+            }
+            .padding(.trailing, 10).padding(.top, 2).allowsHitTesting(false)
         }
     }
 }

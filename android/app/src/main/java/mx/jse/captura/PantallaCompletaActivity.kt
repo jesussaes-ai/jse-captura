@@ -88,7 +88,7 @@ class PantallaCompletaActivity : Activity() {
             LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f))
         raiz.addView(arriba, FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT, Gravity.TOP))
         // La versión siempre visible arriba a la derecha, aunque los controles se oculten.
-        val version = TextView(c).apply { text = "v${BuildConfig.VERSION_NAME}"; textSize = 11f; setTextColor(Ui.SUTIL); tag = "version"
+        val version = Ui.marca(c, 11f).apply {
             setBackgroundColor(0x66000000); setPadding(Ui.dp(c, 6), Ui.dp(c, 2), Ui.dp(c, 6), Ui.dp(c, 2)) }
         raiz.addView(version, FrameLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT, Gravity.TOP or Gravity.END))
 

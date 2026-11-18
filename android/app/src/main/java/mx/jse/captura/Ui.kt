@@ -61,10 +61,8 @@ object Ui {
      */
     fun conVersion(ctx: Context, contenido: View): View = LinearLayout(ctx).apply {
         orientation = LinearLayout.VERTICAL
-        addView(TextView(ctx).apply {
-            text = "v${BuildConfig.VERSION_NAME}"; textSize = 12f; setTextColor(SUTIL); gravity = Gravity.END
-            setPadding(dp(ctx, 16), dp(ctx, 6), dp(ctx, 16), 0); tag = "version"
-        }, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT))
+        addView(marca(ctx, 12f).apply { setPadding(dp(ctx, 16), dp(ctx, 6), dp(ctx, 16), 0) },
+            LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT).apply { gravity = Gravity.END })
         addView(contenido, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f))
         setOnApplyWindowInsetsListener { v, ins ->
             if (android.os.Build.VERSION.SDK_INT >= 30) {
@@ -75,6 +73,15 @@ object Ui {
             }
             ins
         }
+    }
+
+    /** Logotipo + «JSE Captura vX.Y.Z» (regla de Jesús: logo, nombre y versión arriba a la derecha en todas las pantallas). */
+    fun marca(ctx: Context, tam: Float = 12f) = TextView(ctx).apply {
+        text = "JSE Captura v${BuildConfig.VERSION_NAME}"; textSize = tam; setTextColor(SUTIL); tag = "version"
+        gravity = Gravity.CENTER_VERTICAL
+        val lado = (tam * 1.5f * ctx.resources.displayMetrics.scaledDensity).toInt()
+        ctx.getDrawable(R.drawable.ic_app)?.let { it.setBounds(0, 0, lado, lado); setCompoundDrawablesRelative(it, null, null, null) }
+        compoundDrawablePadding = dp(ctx, 5)
     }
 
     fun columna(ctx: Context) = LinearLayout(ctx).apply { orientation = LinearLayout.VERTICAL }

@@ -93,7 +93,7 @@ adb shell am start -W -n $P/.MainActivity >/dev/null; sleep 3
 tocar "Ver «Curso de prueba»" && sleep 4
 volcar; adb exec-out screencap -p > pantallas/4-pantalla-completa.png
 cp /tmp/g.xml pantallas/4-pantalla-completa.xml
-grep -q "text=\"v$VER\"" /tmp/g.xml && bien "pantalla completa con v$VER" || mal "pantalla completa sin la versión"
+grep -q "text=\"JSE Captura v$VER\"" /tmp/g.xml && bien "pantalla completa con v$VER" || mal "pantalla completa sin la versión"
 adb shell dumpsys activity activities | grep -q 'PantallaCompletaActivity' && bien "abrió la pantalla completa" || mal "no abrió la pantalla completa"
 TAM=$(adb shell wm size | sed 's/.*: //' | tr -d '\r'); W=${TAM%x*}; H=${TAM#*x}
 adb shell input tap $((W/2)) $((H/2)); sleep 1; volcar
