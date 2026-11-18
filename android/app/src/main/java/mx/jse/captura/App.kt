@@ -20,7 +20,11 @@ class App : Application() {
         Ajustes(this).migrar()
         Biblioteca.iniciar(this)
         // Grabaciones que quedaron a medias por un cierre inesperado.
-        Thread { Recuperacion.recuperar(this) }.start()
+        Thread {
+            // Videos que están en el teléfono pero no en la lista: se vuelven a mostrar.
+            runCatching { Biblioteca.reconstruir(this) }
+            Recuperacion.recuperar(this)
+        }.start()
         Sincronizar.programar(this)
     }
 

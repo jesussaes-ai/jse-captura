@@ -11,6 +11,12 @@ import android.os.Bundle
 class PermisoCapturaActivity : Activity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        // El permiso de la grabación anterior sigue abierto: se graba directo, sin volver a preguntar.
+        if (CapturaService.enEspera) {
+            CapturaService.grabarDeNuevo(this, Intent().putExtras(intent))
+            intent.getStringExtra(CapturaService.EXTRA_LINK)?.let { abrirLink(it) }
+            finish(); return
+        }
         val mpm = getSystemService(MediaProjectionManager::class.java)
         // Siempre pantalla completa: se graba lo que estés viendo (YouTube, Facebook, Zoom…) sin tener que
         // elegir la app cada vez. Android solo deja saltar la elección, no el «Iniciar ahora».
@@ -30,15 +36,17 @@ class PermisoCapturaActivity : Activity() {
                 .putExtra(CapturaService.EXTRA_APP, intent.getStringExtra(CapturaService.EXTRA_APP))
                 .putExtra(CapturaService.EXTRA_CUENTA, intent.getIntExtra(CapturaService.EXTRA_CUENTA, 0)))
             // Grabar desde un link: se abre en su app (YouTube, navegador…) mientras esta ventana sigue al frente.
-            if (link != null) runCatching {
-                startActivity(Intent(Intent.ACTION_VIEW, android.net.Uri.parse(link)).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
-            }.onFailure {
-                CapturaService.ultimoError = "Ninguna app del teléfono puede abrir ese link; no se grabó nada."
-                CapturaService.detener(this)
-            }
+            if (link != null) abrirLink(link)
         } else {
             CapturaService.ultimoError = "Cancelaste el permiso de captura; no se empezó a grabar."
         }
         finish()
+    }
+
+    private fun abrirLink(link: String) = runCatching {
+        startActivity(Intent(Intent.ACTION_VIEW, android.net.Uri.parse(link)).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+    }.onFailure {
+        CapturaService.ultimoError = "Ninguna app del teléfono puede abrir ese link; no se grabó nada."
+        CapturaService.detener(this)
     }
 }

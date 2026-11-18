@@ -142,7 +142,7 @@ antes=$(adb shell "ls '$CARP'" | grep -c mp4)
 c=$(centro "▶ Abrir y grabar" exacto) || { adb shell input swipe $((W/2)) $((H*3/5)) $((W/2)) $((H*2/5)) 300; sleep 1; volcar; c=$(centro "▶ Abrir y grabar" exacto); }
 if [ -n "${c:-}" ]; then adb shell input tap $c; bien "toqué «Abrir y grabar»"; else mal "no encontré «Abrir y grabar»"; fi
 sleep 3; volcar
-for t in "Start now" "Iniciar ahora" "Start" "Iniciar"; do c=$(centro "$t" exacto) && { adb shell input tap $c; sleep 2; break; }; done
+if grep -qE 'text="(Start now|Iniciar ahora)"' /tmp/g.xml; then mal "volvió a pedir «Iniciar ahora» (debía grabar directo con el permiso abierto)"; c=$(centro "Start now" exacto) && adb shell input tap $c; else bien "segunda grabación sin volver a pedir permiso"; fi
 sleep 7
 foco=$(adb shell dumpsys window | grep -m1 -E 'mCurrentFocus|mFocusedApp' | tr -d '\r')
 echo "en pantalla: $foco"
@@ -156,6 +156,13 @@ sleep 3
 despues=$(adb shell "ls '$CARP'" | grep -c mp4)
 nuevo=$(adb shell "ls '$CARP'" | tr -d '\r' | grep 'example.com' | head -1)
 [ "$despues" -gt "$antes" ] && [ -n "$nuevo" ] && bien "grabación del link guardada: $nuevo" || mal "no se guardó la grabación del link ($antes → $despues)"
+
+# 6) Videos que están en el teléfono pero no en la lista vuelven a aparecer solos.
+adb shell "cp '$CARP/$ruta' '$CARP/2026-01-01 10.00.00 Video viejo.mp4'" 2>/dev/null || adb push pantallas/prueba.mp4 "$CARP/2026-01-01 10.00.00 Video viejo.mp4" >/dev/null
+adb shell am force-stop $P; sleep 1
+adb shell am start -W -n $P/.MainActivity >/dev/null; sleep 5
+for i in 1 2 3 4 5 6; do volcar; grep -q 'text="Video viejo"' /tmp/g.xml && break; adb shell input swipe $((W/2)) $((H*4/5)) $((W/2)) $((H/3)) 300; sleep 1; done
+grep -q 'text="Video viejo"' /tmp/g.xml && bien "un video que no estaba en la lista volvió a aparecer" || mal "el video de la carpeta no volvió a la lista"
 
 if ! adb shell pidof $P >/dev/null; then mal "la app se cerró"; fi
 adb logcat -d | grep -A25 "FATAL EXCEPTION" | head -50

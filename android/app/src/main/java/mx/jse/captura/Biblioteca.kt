@@ -152,6 +152,47 @@ object Biblioteca {
         }.sortedByDescending { it.creado }
     }
 
+    /**
+     * Vuelve a poner en la lista los videos que están en el teléfono pero que la lista perdió
+     * (lista dañada, una versión anterior que no la guardó, etc.). Nunca borra nada.
+     */
+    fun reconstruir(ctx: Context): Int {
+        var n = 0
+        // 1) Copias de una lista que no se pudo leer.
+        ctx.filesDir.listFiles { f -> f.name.startsWith("biblioteca.json.dañada") }?.sortedByDescending { it.name }?.forEach { f ->
+            runCatching {
+                val a = JSONObject(f.readText()).getJSONArray("grabaciones")
+                for (i in 0 until a.length()) runCatching {
+                    val g = Grabacion.de(a.getJSONObject(i))
+                    if (obtener(g.id) == null && g.archivo?.let { File(it).exists() } == true) { items.add(g); n++ }
+                }
+            }
+        }
+        // 2) MP4 en la carpeta de videos que no están en la lista.
+        val conocidos = items.mapNotNull { it.archivo?.let { a -> File(a).canonicalPath } }.toSet()
+        videos.listFiles { f -> f.isFile && f.name.endsWith(".mp4", true) }?.forEach { f ->
+            if (f.canonicalPath in conocidos) return@forEach
+            val info = Medios.validar(f)
+            if (!info.valido) return@forEach
+            val m = Regex("""^(\d{4}-\d{2}-\d{2}) (\d{2})\.(\d{2})\.(\d{2}) (.+)\.mp4$""", RegexOption.IGNORE_CASE).find(f.name)
+            val local = m?.let { "${it.groupValues[1]}T${it.groupValues[2]}:${it.groupValues[3]}:${it.groupValues[4]}" }
+                ?: LocalDateTime.ofInstant(java.time.Instant.ofEpochMilli(f.lastModified()), java.time.ZoneId.systemDefault()).withNano(0).toString()
+            val creado = runCatching { LocalDateTime.parse(local).atZone(java.time.ZoneId.systemDefault()).toInstant().toString() }.getOrDefault(java.time.Instant.ofEpochMilli(f.lastModified()).toString())
+            val id = nuevoId()
+            val g = Grabacion(
+                id = id, titulo = m?.groupValues?.get(5) ?: f.nameWithoutExtension, creado = creado, creadoLocal = local,
+                archivo = f.path, miniatura = Medios.miniatura(f, File(miniaturas, "$id.jpg")),
+                duracion = info.duracion, tamano = f.length(), ancho = info.ancho, alto = info.alto,
+                origen = "Android · recuperada de la carpeta de videos", audio = "",
+            )
+            if (!Ajustes(ctx).nasConfigurado()) g.destinos["nas"] = Destino("no_configurado", motivo = "Vincula el NAS en Ajustes para copiar.")
+            items.add(g); n++
+        }
+        if (n > 0) guardar()
+        android.util.Log.i("JSECaptura", "reconstruir: $n grabaciones devueltas a la lista")
+        return n
+    }
+
     /** Nombre del MP4 en disco: fecha + título (igual que al guardar). */
     fun nombreArchivo(creadoLocal: String, titulo: String) =
         "${creadoLocal.replace('T', ' ').replace(':', '.')} ${Ui.nombreSeguro(titulo)}.mp4"

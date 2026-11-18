@@ -75,6 +75,7 @@ class BurbujaService : Service() {
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         if (intent?.action == QUITAR) {
             Ajustes(this).botonFlotante = false
+            if (CapturaService.enEspera) CapturaService.detener(this)
             stopSelf(); return START_NOT_STICKY
         }
         val n = notificacion()
@@ -99,6 +100,9 @@ class BurbujaService : Service() {
                 // Se mira qué app está al frente ANTES de que salga el diálogo del sistema.
                 val app = appAlFrente(this)
                 android.util.Log.i("JSECaptura", "grabar desde la burbuja; app al frente=$app")
+                if (CapturaService.enEspera) {   // sin diálogo: el permiso sigue abierto
+                    CapturaService.grabarDeNuevo(this, Intent().putExtra(CapturaService.EXTRA_APP, app)); return
+                }
                 runCatching {
                     startActivity(Intent(this, PermisoCapturaActivity::class.java)
                         .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_NO_ANIMATION)

@@ -53,6 +53,8 @@ class CapturaService : Service() {
         @Volatile var preparado = false; private set
         @Volatile var pausado = false; private set
         @Volatile var guardando = false; private set
+        /** El permiso de captura sigue abierto: la siguiente grabación empieza sin preguntar. */
+        @Volatile var enEspera = false; private set
         /** Cuenta regresiva que se muestra en el botón flotante (0 = ninguna). */
         @Volatile var cuenta = 0; private set
         @Volatile var inicioMs = 0L; private set
@@ -70,6 +72,8 @@ class CapturaService : Service() {
         fun detener(ctx: Context) = ctx.startService(Intent(ctx, CapturaService::class.java).setAction(ACCION_DETENER))
         fun empezar(ctx: Context) = ctx.startService(Intent(ctx, CapturaService::class.java).setAction(ACCION_EMPEZAR))
         fun marcar(ctx: Context) = ctx.startService(Intent(ctx, CapturaService::class.java).setAction(ACCION_MARCAR))
+        /** Graba otra vez con el permiso que sigue abierto (sin diálogo). */
+        fun grabarDeNuevo(ctx: Context, extras: Intent) = ctx.startService(Intent(ctx, CapturaService::class.java).setAction(ACCION_INICIAR).putExtras(extras))
         fun pausa(ctx: Context) = ctx.startService(Intent(ctx, CapturaService::class.java).setAction(ACCION_PAUSA))
     }
 
@@ -103,7 +107,7 @@ class CapturaService : Service() {
         android.util.Log.i("JSECaptura", "acción=${intent?.action} activo=$activo preparado=$preparado")
         when (intent?.action) {
             ACCION_INICIAR -> iniciar(intent)
-            ACCION_DETENER -> terminar()
+            ACCION_DETENER -> if (enEspera) apagar() else terminar()
             ACCION_EMPEZAR -> empezar()
             ACCION_PAUSA -> alternarPausa()
             ACCION_MARCAR -> if (activo) {
@@ -115,17 +119,26 @@ class CapturaService : Service() {
         return START_NOT_STICKY
     }
 
-    private fun iniciar(intent: Intent) {
-        if (activo || preparado) return
+    private var anchoV = 0
+    private var altoV = 0
+
+    private fun tiposServicio() = ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PROJECTION or
+        (if (mic) ServiceInfo.FOREGROUND_SERVICE_TYPE_MICROPHONE else 0)
+
+    private fun leerAudio() {
         val aj = Ajustes(this)
         // Audio encendido por defecto, pero solo si Android dio el permiso (sin él, el tipo "micrófono" haría fallar el servicio).
         val permisoAudio = checkSelfPermission(android.Manifest.permission.RECORD_AUDIO) == android.content.pm.PackageManager.PERMISSION_GRANTED
         mic = aj.microfono && permisoAudio
         interno = aj.audioInterno && permisoAudio
+    }
+
+    private fun iniciar(intent: Intent) {
+        if (activo || preparado) return
+        if (enEspera) { nuevaSesion(intent); return }
+        leerAudio()
         // Primero el aviso persistente (obligatorio antes de obtener la proyección en Android 10+).
-        val tipos = ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PROJECTION or
-            (if (mic) ServiceInfo.FOREGROUND_SERVICE_TYPE_MICROPHONE else 0)
-        startForeground(NOTI, notificacion("Preparando…"), tipos)
+        startForeground(NOTI, notificacion("Preparando…"), tiposServicio())
 
         val mpm = getSystemService(MediaProjectionManager::class.java)
         val datos: Intent? = if (Build.VERSION.SDK_INT >= 33) intent.getParcelableExtra(EXTRA_DATOS, Intent::class.java) else @Suppress("DEPRECATION") intent.getParcelableExtra(EXTRA_DATOS)
@@ -136,12 +149,14 @@ class CapturaService : Service() {
         }
         proyeccion = p
         p.registerCallback(object : MediaProjection.Callback() {
-            // El sistema terminó la captura (el usuario tocó "Dejar de compartir", otra app tomó la pantalla…).
+            // El sistema terminó la captura (el usuario tocó "Dejar de compartir", bloqueo de pantalla…).
             override fun onStop() {
+                android.util.Log.i("JSECaptura", "la proyección terminó activo=$activo espera=$enEspera")
+                proyeccion = null
                 if (activo && !deteniendo) {
-                    ultimoError = "El sistema terminó la captura. Se guardó lo grabado; inicia otra sesión si quieres seguir."
+                    ultimoError = "El sistema terminó la captura. Se guardó lo grabado; toca ● REC para seguir."
                     terminar()
-                }
+                } else if (enEspera) apagar()
             }
             // Android 14+: la app compartida cambió de tamaño o giró. El video conserva su tamaño (con bordes).
             override fun onCapturedContentResize(width: Int, height: Int) {}
@@ -152,30 +167,52 @@ class CapturaService : Service() {
         val real = (getSystemService(DisplayManager::class.java)).getDisplay(0)?.let { d ->
             val r = android.graphics.Point(); @Suppress("DEPRECATION") d.getRealSize(r); r
         } ?: android.graphics.Point(m.widthPixels, m.heightPixels)
-        val (largo, corto) = if (aj.calidad == "720") 1280 to 720 else 1920 to 1080
+        val (largo, corto) = if (Ajustes(this).calidad == "720") 1280 to 720 else 1920 to 1080
         val (w, h) = Codificador.tamano(real.x, real.y, largo, corto)
+        anchoV = w; altoV = h
+        nuevaSesion(intent)
+    }
 
+    /**
+     * Una grabación nueva sobre el permiso ya aceptado. Después de la primera, el permiso se queda abierto
+     * (en espera, sin grabar nada) y las siguientes empiezan con un toque, sin volver a preguntar.
+     */
+    private fun nuevaSesion(intent: Intent) {
+        val p = proyeccion ?: run { pararServicio(); return }
+        val aj = Ajustes(this)
+        if (enEspera) {
+            leerAudio()
+            runCatching { startForeground(NOTI, notificacion("Preparando…"), tiposServicio()) }
+                .onFailure { mic = false; runCatching { startForeground(NOTI, notificacion("Preparando…"), tiposServicio()) } }
+            enEspera = false
+        }
+        deteniendo = false
+        marcas.clear()
         id = Biblioteca.nuevoId()
         creado = Instant.now().toString()
         creadoLocal = Biblioteca.fechaLocal()
         sesion = File(Biblioteca.temporales, id).apply { mkdirs() }
         if (StatFs(sesion!!.path).availableBytes < 1024L * 1024 * 1024) {
             ultimoError = "Queda menos de 1 GB libre en el teléfono. Libera espacio (puedes borrar del teléfono lo que ya está en el NAS)."
-            pararServicio(); return
+            sesion?.deleteRecursively(); apagar(); return
         }
         try {
-            cod = Codificador(sesion!!, w, h, if (aj.calidad == "720") 4_000_000 else 8_000_000, p, mic, interno).also { it.iniciar() }
-            pantalla = p.createVirtualDisplay("JSE Captura", w, h, m.densityDpi, DisplayManager.VIRTUAL_DISPLAY_FLAG_AUTO_MIRROR, cod!!.superficie, null, manejador)
+            cod = Codificador(sesion!!, anchoV, altoV, if (aj.calidad == "720") 4_000_000 else 8_000_000, p, mic, interno).also { it.iniciar() }
+            val d = pantalla
+            if (d == null) pantalla = p.createVirtualDisplay("JSE Captura", anchoV, altoV, resources.displayMetrics.densityDpi,
+                DisplayManager.VIRTUAL_DISPLAY_FLAG_AUTO_MIRROR, cod!!.superficie, null, manejador)
+            else d.surface = cod!!.superficie
         } catch (e: Exception) {
             ultimoError = "No se pudo iniciar el codificador de video: ${e.message}"
             cod?.runCatching { detener() }
-            pararServicio(); return
+            sesion?.deleteRecursively()
+            apagar(); return
         }
         ultimoError = cod!!.avisoAudio
         link = intent.getStringExtra(EXTRA_LINK)
         app = intent.getStringExtra(EXTRA_APP)
         preparado = true
-        android.util.Log.i("JSECaptura", "preparado ${w}x$h mic=$mic interno=$interno app=$app")
+        android.util.Log.i("JSECaptura", "preparado ${anchoV}x$altoV mic=$mic interno=$interno app=$app")
         // El botón flotante sigue a la vista aunque se haya empezado desde el mosaico o la app.
         BurbujaService.mostrar(this)
         val segundos = if (link != null) 3 else intent.getIntExtra(EXTRA_CUENTA, 0)
@@ -187,6 +224,28 @@ class CapturaService : Service() {
             for (n in segundos downTo 1) manejador.postDelayed({ if (preparado) { cuenta = n; avisar() } }, (segundos - n) * 1000L)
             manejador.postDelayed({ cuenta = 0; if (preparado) empezar() }, segundos * 1000L)
         } else empezar()
+    }
+
+    /** Queda listo para la siguiente grabación sin volver a pedir permiso (no se graba nada mientras tanto). */
+    private fun quedarEnEspera() {
+        if (proyeccion == null) { pararServicio(); return }
+        activo = false; preparado = false; pausado = false; guardando = false; cuenta = 0
+        deteniendo = false
+        cod = null; sesion = null
+        enEspera = true
+        manejador.removeCallbacks(vigilarEspacio)
+        getSystemService(NotificationManager::class.java).notify(NOTI, notificacion(null))
+        actualizarMosaico()
+        avisar()
+        ultimoError?.let { Ui.avisoSistema(this, "JSE Captura", it) }
+    }
+
+    /** Suelta el permiso de captura y cierra el servicio. */
+    private fun apagar() {
+        enEspera = false
+        runCatching { pantalla?.release() }; pantalla = null
+        runCatching { proyeccion?.stop() }; proyeccion = null
+        pararServicio()
     }
 
     /** Empieza a escribir el video desde este instante. */
@@ -226,11 +285,10 @@ class CapturaService : Service() {
         val s = sesion
         val c = cod
         Thread {
-            runCatching { pantalla?.release() }
+            runCatching { pantalla?.surface = null }
             runCatching { c?.detener() }
-            runCatching { proyeccion?.stop() }
             s?.deleteRecursively()
-            manejador.post { pararServicio() }
+            manejador.post { quedarEnEspera() }
         }.start()
     }
 
@@ -255,9 +313,9 @@ class CapturaService : Service() {
         val s = sesion!!
         val c = cod!!
         Thread {
-            runCatching { pantalla?.release() }
+            // El permiso no se suelta: la pantalla virtual se queda sin destino (no graba) hasta el siguiente ● REC.
+            runCatching { pantalla?.surface = null }
             c.detener()
-            runCatching { proyeccion?.stop() }
             activo = false
             pausado = false
             val g = Recuperacion.finalizarSesion(this, s, recuperada = false)
@@ -271,11 +329,14 @@ class CapturaService : Service() {
                 val pidio = Ajustes(this).pedirNombre && runCatching { startActivity(nombrar) }.onFailure { android.util.Log.w("JSECaptura", "nombrar", it) }.isSuccess
                 if (!pidio) Sincronizar.ahora(this)
             } else ultimoError = ultimoError ?: "No se pudo guardar la grabación. Los segmentos quedaron en la carpeta Grabando."
-            manejador.postDelayed({ pararServicio() }, 600)
+            manejador.postDelayed({ quedarEnEspera() }, 600)
         }.start()
     }
 
     private fun pararServicio() {
+        enEspera = false
+        runCatching { pantalla?.release() }; pantalla = null
+        runCatching { proyeccion?.stop() }; proyeccion = null
         activo = false
         preparado = false
         pausado = false
@@ -297,8 +358,8 @@ class CapturaService : Service() {
         val abrir = PendingIntent.getActivity(this, 0, Intent(this, MainActivity::class.java), PendingIntent.FLAG_IMMUTABLE)
         val b = Notification.Builder(this, App.CANAL_GRABANDO)
             .setSmallIcon(R.drawable.ic_rec)
-            .setContentTitle(if (activo && pausado) "❚❚ Grabación en pausa" else if (activo) "● Grabando la pantalla" else if (preparado) "Por empezar a grabar" else "JSE Captura")
-            .setContentText(texto ?: if (activo && pausado) "Pausa en ${Ui.duracion(transcurridoMs() / 1000.0)} · toca ▶ Seguir para continuar en el mismo video"
+            .setContentTitle(if (enEspera) "● REC listo" else if (activo && pausado) "❚❚ Grabación en pausa" else if (activo) "● Grabando la pantalla" else if (preparado) "Por empezar a grabar" else "JSE Captura")
+            .setContentText(texto ?: if (enEspera) "Toca ● REC en cualquier app: graba sin volver a pedir permiso" else if (activo && pausado) "Pausa en ${Ui.duracion(transcurridoMs() / 1000.0)} · toca ▶ Seguir para continuar en el mismo video"
                 else if (preparado) "Empieza en unos segundos" else "❚❚ pausa · ■ termina (aquí, en el botón flotante o en el mosaico)")
             .setOngoing(true)
             .setContentIntent(abrir)
@@ -308,6 +369,8 @@ class CapturaService : Service() {
             b.addAction(Notification.Action.Builder(null, if (pausado) "▶ Seguir" else "❚❚ Pausa", pi(ACCION_PAUSA, 4)).build())
             b.addAction(Notification.Action.Builder(null, "■ Detener", pi(ACCION_DETENER, 1)).build())
             if (!pausado) b.addAction(Notification.Action.Builder(null, "⚑ Marcar", pi(ACCION_MARCAR, 2)).build())
+        } else if (enEspera) {
+            b.addAction(Notification.Action.Builder(null, "Apagar", pi(ACCION_DETENER, 1)).build())
         } else if (preparado) {
             b.addAction(Notification.Action.Builder(null, "● Empezar", pi(ACCION_EMPEZAR, 3)).build())
             b.addAction(Notification.Action.Builder(null, "✕ Cancelar", pi(ACCION_DETENER, 1)).build())
