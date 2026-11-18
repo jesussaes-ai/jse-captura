@@ -11,8 +11,9 @@ fallos=0
 mal() { echo "✗ $*"; fallos=1; }
 bien() { echo "✓ $*"; }
 volcar() { adb shell uiautomator dump /sdcard/ui.xml >/dev/null 2>&1; adb pull /sdcard/ui.xml /tmp/g.xml >/dev/null 2>&1; }
-centro() { # centro del elemento cuyo atributo (text o content-desc) empieza con $1
-  b=$(grep -oE "(text|content-desc)=\"$1[^\"]*\"[^>]*bounds=\"\[[0-9]+,[0-9]+\]\[[0-9]+,[0-9]+\]\"" /tmp/g.xml | head -1 | grep -oE 'bounds=.*' | grep -oE '[0-9]+' | tr '\n' ' ')
+centro() { # centro del elemento cuyo atributo (text o content-desc) empieza con $1 ($2=exacto: nada después)
+  resto='[^"]*'; [ "${2:-}" = exacto ] && resto=''
+  b=$(grep -oE "(text|content-desc)=\"$1$resto\"[^>]*bounds=\"\[[0-9]+,[0-9]+\]\[[0-9]+,[0-9]+\]\"" /tmp/g.xml | head -1 | grep -oE 'bounds=.*' | grep -oE '[0-9]+' | tr '\n' ' ')
   [ -z "$b" ] && return 1
   set -- $b; echo "$(( ($1+$3)/2 )) $(( ($2+$4)/2 ))"
 }
@@ -67,7 +68,7 @@ if grep -q 'Cómo se llama esta grabación' /tmp/g.xml; then
   set -- $c; adb shell input tap $(( ($1+$3)/2 )) $(( ($2+$4)/2 ))
   adb shell input keyevent KEYCODE_MOVE_END; for i in $(seq 1 60); do adb shell input keyevent KEYCODE_DEL; done
   adb shell input text "Curso%sde%sprueba"; sleep 1
-  volcar; c=$(centro "Guardar") || c=$(centro "GUARDAR") || c=""
+  volcar; c=$(centro "Guardar" exacto) || c=$(centro "GUARDAR" exacto) || c=""
   if [ -n "${c:-}" ]; then adb shell input tap $c; else adb shell input keyevent KEYCODE_ENTER; fi; sleep 3
 else mal "no apareció la ventana para poner el nombre"; fi
 
@@ -98,7 +99,7 @@ grep -q "text=\"JSE Captura v$VER\"" /tmp/g.xml && bien "pantalla completa con v
 adb shell dumpsys activity activities | grep -q 'PantallaCompletaActivity' && bien "abrió la pantalla completa" || mal "no abrió la pantalla completa"
 TAM=$(adb shell wm size | sed 's/.*: //' | tr -d '\r'); W=${TAM%x*}; H=${TAM#*x}
 sleep 1; volcar
-tocar "1:1" && { sleep 1; adb exec-out screencap -p > pantallas/5-tamano-original.png; bien "tamaño original 1:1"; } || true
+{ tocar "1:1" || tocar "2×"; } && { sleep 1; adb exec-out screencap -p > pantallas/5-tamano-original.png; bien "tamaño original 1:1"; } || true
 
 if ! adb shell pidof $P >/dev/null; then mal "la app se cerró"; fi
 adb logcat -d | grep -A25 "FATAL EXCEPTION" | head -50

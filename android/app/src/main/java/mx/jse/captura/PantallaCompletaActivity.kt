@@ -108,13 +108,14 @@ class PantallaCompletaActivity : Activity() {
         btnPlay = Ui.boton(c, "❚❚") { alternarPlay() }
         btnTam = Ui.boton(c, "1:1") { alternarTamano() }
         tiempo = Ui.texto(c, "0:00 / 0:00", 13f, Ui.TEXTO)
-        controles.addView(Ui.fila(c,
+        controles.addView(tiempo)
+        // Los botones se desplazan de lado si la pantalla es angosta (teléfono vertical).
+        controles.addView(android.widget.HorizontalScrollView(c).apply { isHorizontalScrollBarEnabled = false; addView(Ui.fila(c,
             Ui.boton(c, "−10 s") { mp?.let { it.seekTo(max(0, it.currentPosition - 10_000)) } },
             btnPlay,
             Ui.boton(c, "+10 s") { mp?.let { it.seekTo(min(it.duration, it.currentPosition + 10_000)) } },
             btnTam,
-            Ui.boton(c, "⟳") { girar() },
-            tiempo))
+            Ui.boton(c, "⟳") { girar() })) })
         raiz.addView(controles, FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT, Gravity.BOTTOM))
         setContentView(raiz)
         pantallaInmersiva()
