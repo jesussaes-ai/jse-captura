@@ -2,7 +2,7 @@ name: Android · APK
 on:
   push:
     branches: [main]
-    paths: ['android/**', '.github/workflows/android.yml', '.github/scripts/**']
+    paths: ['android/**', '.github/workflows/android.yml', '.github/scripts/**', 'VERSION']
   workflow_dispatch:
 jobs:
   apk:
@@ -10,6 +10,9 @@ jobs:
     defaults: { run: { working-directory: android } }
     steps:
       - uses: actions/checkout@v4
+      - name: Misma versión en Android, Windows e iPhone
+        shell: bash
+        run: bash .github/scripts/misma-version.sh
       - uses: actions/setup-java@v4
         with: { distribution: temurin, java-version: 17 }
       - name: Llave de firma fija (secreto del repo; sin ella se usa la de depuración)

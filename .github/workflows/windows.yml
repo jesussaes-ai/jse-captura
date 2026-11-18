@@ -2,7 +2,7 @@ name: Windows · pruebas e instalador
 on:
   push:
     branches: [main]
-    paths: ['escritorio/**', 'nas-servicio/**', '.github/workflows/windows.yml']
+    paths: ['escritorio/**', 'nas-servicio/**', '.github/workflows/windows.yml', '.github/scripts/misma-version.sh', 'VERSION']
   workflow_dispatch:
 jobs:
   windows:
@@ -10,6 +10,9 @@ jobs:
     defaults: { run: { working-directory: escritorio } }
     steps:
       - uses: actions/checkout@v4
+      - name: Misma versión en Android, Windows e iPhone
+        shell: bash
+        run: bash .github/scripts/misma-version.sh
       - uses: actions/setup-node@v4
         with: { node-version: 22 }
       - run: npm ci || npm install
