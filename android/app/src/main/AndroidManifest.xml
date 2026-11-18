@@ -19,6 +19,18 @@
         xmlns:tools="http://schemas.android.com/tools" tools:ignore="ProtectedPermissions" />
     <!-- Galería en Android 10-12 sin permisos extra (MediaStore con IS_PENDING); nada de almacenamiento amplio -->
 
+    <!-- Para mostrar el nombre de la app grabada (YouTube, Zoom…) en lugar de su paquete -->
+    <queries>
+        <intent>
+            <action android:name="android.intent.action.MAIN" />
+            <category android:name="android.intent.category.LAUNCHER" />
+        </intent>
+        <intent>
+            <action android:name="android.intent.action.MAIN" />
+            <category android:name="android.intent.category.HOME" />
+        </intent>
+    </queries>
+
     <application
         android:name=".App"
         android:allowBackup="false"

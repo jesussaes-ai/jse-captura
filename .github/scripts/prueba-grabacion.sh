@@ -112,7 +112,10 @@ fi
 # 4) Miniatura → pantalla completa con la versión.
 adb shell am start -W -n $P/.MainActivity >/dev/null; sleep 3
 TAM=$(adb shell wm size | sed 's/.*: //' | tr -d '\r'); W=${TAM%x*}; H=${TAM#*x}
-for i in 1 2; do adb shell input swipe $((W/2)) $((H*4/5)) $((W/2)) $((H/4)) 300; sleep 1; done   # baja a la lista
+for i in 1 2 3 4 5; do   # baja hasta la miniatura
+  volcar; grep -q 'content-desc="Ver «Curso de prueba»' /tmp/g.xml && break
+  adb shell input swipe $((W/2)) $((H*4/5)) $((W/2)) $((H/3)) 300; sleep 1
+done
 volcar; grep -q 'text="Curso de prueba"' /tmp/g.xml && bien "la lista muestra «Curso de prueba»" || mal "la lista no muestra el nombre"
 tocar "Ver «Curso de prueba»" && sleep 4
 volcar; c=$(centro "Got it") && { adb shell input tap $c; sleep 1; bien "aviso de pantalla completa de Android cerrado"; }
@@ -128,6 +131,10 @@ sleep 1; volcar
 # 5) Grabar desde un link: compartir un link a la app, abrirlo y que grabe sola.
 adb shell input keyevent KEYCODE_BACK; sleep 1
 adb shell am start -W -a android.intent.action.SEND -t text/plain --es android.intent.extra.TEXT "'Mira este curso https://example.com/curso'" -n $P/.MainActivity >/dev/null; sleep 3
+for i in 1 2 3 4 5 6; do   # el campo del link está arriba: sube hasta verlo
+  volcar; grep -q 'content-desc="Link para grabar"' /tmp/g.xml && break
+  adb shell input swipe $((W/2)) $((H/3)) $((W/2)) $((H*4/5)) 300; sleep 1
+done
 volcar
 grep -q 'text="https://example.com/curso"' /tmp/g.xml && bien "link compartido llegó al campo" || { mal "el link compartido no llenó el campo"; grep -oE 'text="[^"]*"' /tmp/g.xml | head -30 | tr '\n' ' '; echo; }
 antes=$(adb shell "ls '$CARP'" | grep -c mp4)

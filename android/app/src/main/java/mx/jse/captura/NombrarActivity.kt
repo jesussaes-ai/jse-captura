@@ -26,6 +26,10 @@ class NombrarActivity : Activity() {
 
     override fun attachBaseContext(base: android.content.Context) = super.attachBaseContext(Ui.letraLimitada(base))
 
+    // El botón flotante se esconde mientras escribes el nombre para no tapar «Guardar».
+    override fun onStart() { super.onStart(); BurbujaService.escondida = true }
+    override fun onStop() { BurbujaService.escondida = false; super.onStop() }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         val id = intent.getStringExtra("id") ?: return finish()

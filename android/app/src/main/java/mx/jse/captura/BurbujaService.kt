@@ -56,9 +56,15 @@ class BurbujaService : Service() {
                 @Suppress("DEPRECATION")
                 if (e.eventType == UsageEvents.Event.MOVE_TO_FOREGROUND) ultimo = e.packageName
             }
+            android.util.Log.i("JSECaptura", "última app al frente: $ultimo (inicio=$inicio)")
             val p = ultimo?.takeIf { it !in ignorar } ?: return null
-            pm.getApplicationLabel(pm.getApplicationInfo(p, 0)).toString().trim().ifEmpty { null }
-        }.getOrNull()
+            runCatching { pm.getApplicationLabel(pm.getApplicationInfo(p, 0)).toString().trim() }.getOrNull()?.ifEmpty { null }
+                ?: p.substringAfterLast('.').replaceFirstChar { it.uppercase() }
+        }.onFailure { android.util.Log.w("JSECaptura", "app al frente", it) }.getOrNull()
+
+        /** Se esconde mientras se escribe el nombre del video, para no tapar «Guardar». */
+        @Volatile var escondida = false
+            set(v) { field = v; CapturaService.oyentes.toList().forEach { it() } }
     }
 
     private var burbuja: Burbuja? = null
@@ -104,6 +110,7 @@ class BurbujaService : Service() {
 
     private fun pintar() {
         val b = burbuja ?: return
+        b.esconder(escondida)
         when {
             CapturaService.guardando -> b.modoGuardando()
             CapturaService.activo -> b.modoGrabando(CapturaService.pausado)

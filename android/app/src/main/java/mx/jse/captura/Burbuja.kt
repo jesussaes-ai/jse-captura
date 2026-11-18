@@ -116,6 +116,8 @@ class Burbuja(private val ctx: Context, private val alTocar: (boton: Int) -> Uni
 
     fun modoGuardando() = pintar(0.6f, { it.contentDescription = "Guardando"; circulo(it, "…", 40, 0xFF555555.toInt(), 14f) }, null)
 
+    fun esconder(si: Boolean) { raiz?.visibility = if (si) View.GONE else View.VISIBLE }
+
     fun quitar() {
         raiz?.let { runCatching { wm.removeView(it) } }
         raiz = null; principal = null; detener = null; lp = null
