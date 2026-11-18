@@ -67,10 +67,12 @@ if grep -q 'Cómo se llama esta grabación' /tmp/g.xml; then
   set -- $c; adb shell input tap $(( ($1+$3)/2 )) $(( ($2+$4)/2 ))
   adb shell input keyevent KEYCODE_MOVE_END; for i in $(seq 1 60); do adb shell input keyevent KEYCODE_DEL; done
   adb shell input text "Curso%sde%sprueba"; sleep 1
-  adb shell input keyevent KEYCODE_ENTER; sleep 3   # Enter = Guardar
+  volcar; c=$(centro "Guardar") || c=$(centro "GUARDAR") || { adb shell input keyevent KEYCODE_ESCAPE; sleep 1; volcar; c=$(centro "Guardar") || c=$(centro "GUARDAR"); }
+  if [ -n "${c:-}" ]; then adb shell input tap $c; else adb shell input keyevent KEYCODE_ENTER; fi; sleep 3
 else mal "no apareció la ventana para poner el nombre"; fi
 
 j=$(biblioteca)
+echo "títulos: $(echo "$j" | grep -oE '"titulo":"[^"]*"' | tr '\n' ' ')"
 echo "$j" | grep -q '"titulo":"Curso de prueba"' && bien "guardada con el nombre «Curso de prueba»" || mal "el título no quedó como «Curso de prueba»"
 ruta=$(echo "$j" | grep -oE '"archivo":"[^"]*Curso de prueba\.mp4"' | head -1 | sed 's/"archivo":"//; s/"$//; s#\\/#/#g')
 if [ -n "$ruta" ]; then
@@ -93,7 +95,8 @@ volcar; adb exec-out screencap -p > pantallas/4-pantalla-completa.png
 cp /tmp/g.xml pantallas/4-pantalla-completa.xml
 grep -q "text=\"v$VER\"" /tmp/g.xml && bien "pantalla completa con v$VER" || mal "pantalla completa sin la versión"
 adb shell dumpsys activity activities | grep -q 'PantallaCompletaActivity' && bien "abrió la pantalla completa" || mal "no abrió la pantalla completa"
-adb shell input tap 540 1000; sleep 1; volcar
+TAM=$(adb shell wm size | sed 's/.*: //' | tr -d '\r'); W=${TAM%x*}; H=${TAM#*x}
+adb shell input tap $((W/2)) $((H/2)); sleep 1; volcar
 tocar "1:1" && { sleep 1; adb exec-out screencap -p > pantallas/5-tamano-original.png; bien "tamaño original 1:1"; } || true
 
 if ! adb shell pidof $P >/dev/null; then mal "la app se cerró"; fi

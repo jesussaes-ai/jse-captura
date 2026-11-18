@@ -86,8 +86,11 @@ class PantallaCompletaActivity : Activity() {
         arriba.addView(Ui.boton(c, "✕") { finish() })
         arriba.addView(Ui.texto(c, g.titulo, 15f, Ui.TEXTO, true).apply { maxLines = 1; setPadding(Ui.dp(c, 8), 0, 0, 0) },
             LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f))
-        arriba.addView(TextView(c).apply { text = "v${BuildConfig.VERSION_NAME}"; textSize = 12f; setTextColor(Ui.SUTIL); tag = "version" })
         raiz.addView(arriba, FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT, Gravity.TOP))
+        // La versión siempre visible arriba a la derecha, aunque los controles se oculten.
+        val version = TextView(c).apply { text = "v${BuildConfig.VERSION_NAME}"; textSize = 11f; setTextColor(Ui.SUTIL); tag = "version"
+            setBackgroundColor(0x66000000); setPadding(Ui.dp(c, 6), Ui.dp(c, 2), Ui.dp(c, 6), Ui.dp(c, 2)) }
+        raiz.addView(version, FrameLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT, Gravity.TOP or Gravity.END))
 
         // ---- controles inferiores ----
         controles = LinearLayout(c).apply {
@@ -121,7 +124,8 @@ class PantallaCompletaActivity : Activity() {
                 val m = ins.getInsetsIgnoringVisibility(WindowInsets.Type.systemBars() or WindowInsets.Type.displayCutout())
                 listOf(m.left, m.top, m.right, m.bottom)
             } else @Suppress("DEPRECATION") listOf(ins.systemWindowInsetLeft, ins.systemWindowInsetTop, ins.systemWindowInsetRight, ins.systemWindowInsetBottom)
-            arriba.setPadding(Ui.dp(c, 8) + l, Ui.dp(c, 4) + t, Ui.dp(c, 12) + r, Ui.dp(c, 4))
+            arriba.setPadding(Ui.dp(c, 8) + l, Ui.dp(c, 4) + t, Ui.dp(c, 64) + r, Ui.dp(c, 4))
+            (version.layoutParams as FrameLayout.LayoutParams).let { it.topMargin = t + Ui.dp(c, 4); it.rightMargin = r + Ui.dp(c, 4); version.layoutParams = it }
             controles.setPadding(Ui.dp(c, 12) + l, Ui.dp(c, 4), Ui.dp(c, 12) + r, Ui.dp(c, 8) + b)
             ins
         }
