@@ -22,7 +22,7 @@
    powershell -ExecutionPolicy Bypass -File autoinstalar.ps1 -SoloWindows  # PCs sin teléfonos (hpjsetrabajo)
 #>
 param([switch]$Programar, [switch]$SoloWindows)
-$ErrorActionPreference = 'Stop'
+$ErrorActionPreference = 'Continue'   # adb y gh escriben avisos en stderr; los errores se revisan uno por uno
 $Repo = 'jesussaes-ai/jse-captura'
 $Base = Join-Path $env:USERPROFILE 'JSE\auto-instalador'
 New-Item -ItemType Directory -Force -Path $Base | Out-Null
@@ -96,6 +96,7 @@ try {
   foreach ($renglon in Get-Content $lista -Encoding UTF8) {
     if ($renglon -notmatch '^\s*([^=#]+?)\s*=\s*(\S+)\s*$') { continue }
     $nombre = $Matches[1]; $dir_ = $Matches[2]
+    try {  # un teléfono que falla no detiene a los demás
     # IP:puerto -> se conecta con tiempo límite (un teléfono que no contesta no cuelga la vuelta).
     # Otro texto (p. ej. «adb-R5CW…._adb-tls-connect._tcp») -> serie mDNS que adb ya ve sola.
     if ($dir_ -match '^[\d\.]+:\d+$') {
@@ -115,5 +116,6 @@ try {
     # --user 0: el perfil principal (algunos teléfonos tienen perfiles extra, como la Carpeta segura).
     $out = (& $adb -s $dir_ install -r --user 0 $apk.FullName 2>&1) -join ' '
     if ($out -match 'Success') { Log "✓ ${nombre}: JSE Captura $nueva instalada." } else { Log "✗ ${nombre}: $out" }
+    } catch { Log "✗ ${nombre}: $($_.Exception.Message)" }
   }
 } catch { Log "✗ Android: $($_.Exception.Message)" }
