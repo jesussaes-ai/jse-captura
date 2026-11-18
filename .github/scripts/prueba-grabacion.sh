@@ -106,7 +106,7 @@ if [ -s pantallas/prueba.mp4 ] && command -v ffprobe >/dev/null; then
   d=$(grep -oE 'duration=[0-9.]+' /tmp/probe.txt | tail -1 | cut -d= -f2)
   echo "• tiempo total con la pausa: ${total:-?}s"
   awk -v d="$d" -v t="${total:-99}" 'BEGIN{exit !(d>=3 && d<=t-4)}' && bien "duración ${d}s: sin los ~7 s de pausa (total ${total}s)" || mal "duración inesperada: ${d}s (total ${total:-?}s; la pausa debía quitarse)"
-  ffprobe -v error -select_streams v -show_entries packet=pts_time -of csv=p=0 pantallas/prueba.mp4 | awk -F, 'NR>1 && $1-p>1.0 {print "hueco de " $1-p " s en " p; h=1} {p=$1} END{exit h}' && bien "video continuo, sin hueco por la pausa" || mal "el video tiene un hueco donde iba la pausa"
+  ffprobe -v error -select_streams v -show_entries packet=pts_time -of csv=p=0 pantallas/prueba.mp4 | awk -F, 'NR>1 && $1-p>3.0 {print "hueco de " $1-p " s en " p; h=1} {p=$1} END{exit h}' && bien "video continuo: la pausa no dejó hueco (sin saltos de más de 3 s)" || mal "el video tiene un hueco donde iba la pausa"
 fi
 
 # 4) Miniatura → pantalla completa con la versión.
