@@ -89,6 +89,8 @@ fi
 
 # 4) Miniatura → pantalla completa con la versión.
 adb shell am start -W -n $P/.MainActivity >/dev/null; sleep 3
+TAM=$(adb shell wm size | sed 's/.*: //' | tr -d '\r'); W=${TAM%x*}; H=${TAM#*x}
+for i in 1 2; do adb shell input swipe $((W/2)) $((H*4/5)) $((W/2)) $((H/4)) 300; sleep 1; done   # baja a la lista
 volcar; grep -q 'text="Curso de prueba"' /tmp/g.xml && bien "la lista muestra «Curso de prueba»" || mal "la lista no muestra el nombre"
 tocar "Ver «Curso de prueba»" && sleep 4
 volcar; c=$(centro "Got it") && { adb shell input tap $c; sleep 1; bien "aviso de pantalla completa de Android cerrado"; }
