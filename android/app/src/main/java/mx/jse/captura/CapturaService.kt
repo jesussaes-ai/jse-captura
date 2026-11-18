@@ -39,6 +39,7 @@ class CapturaService : Service() {
         const val ACCION_EMPEZAR = "empezar"
         const val EXTRA_RESULTADO = "resultado"
         const val EXTRA_DATOS = "datos"
+        const val EXTRA_LINK = "link"
         private const val NOTI = 7
 
         /** Grabando de verdad (se están escribiendo cuadros). */
@@ -67,6 +68,7 @@ class CapturaService : Service() {
     private var mic = false
     private var interno = false
     private var burbuja: Burbuja? = null
+    private var link: String? = null
     private val manejador = Handler(Looper.getMainLooper())
     private val vigilarEspacio = object : Runnable {
         override fun run() {
@@ -152,9 +154,17 @@ class CapturaService : Service() {
             pararServicio(); return
         }
         ultimoError = cod!!.avisoAudio
+        link = intent.getStringExtra(EXTRA_LINK)
         preparado = true
         android.util.Log.i("JSECaptura", "preparado ${w}x$h mic=$mic interno=$interno burbuja=${aj.botonFlotante}")
-        if (aj.botonFlotante) {
+        if (link != null) {
+            // Grabar desde un link: la app del link ya se está abriendo; se empieza solo a los 3 s.
+            burbuja = if (aj.botonFlotante) Burbuja(this) { if (preparado) empezar() else if (activo) terminar() }.also { it.mostrar() } else null
+            getSystemService(NotificationManager::class.java).notify(NOTI, notificacion("Abriendo el link… empieza a grabar en 3 s"))
+            actualizarMosaico(); avisar()
+            for (n in 3 downTo 1) manejador.postDelayed({ if (preparado) burbuja?.cuenta(n) }, (3 - n) * 1000L)
+            manejador.postDelayed({ if (preparado) empezar() }, 3000)
+        } else if (aj.botonFlotante) {
             // Queda listo: la grabación empieza cuando tocas el botón flotante (o «Empezar» en la notificación).
             burbuja = Burbuja(this) { if (preparado) empezar() else if (activo) terminar() }
             burbuja!!.mostrar()
@@ -199,8 +209,8 @@ class CapturaService : Service() {
     private fun guardarSesion() {
         val aj = Ajustes(this)
         val j = JSONObject().put("id", id).put("creado", creado).put("creadoLocal", creadoLocal)
-            .put("titulo", "Grabación ${creadoLocal.replace('T', ' ').take(16)}")
-            .put("origen", "Android · ${Build.MANUFACTURER} ${Build.MODEL} · pantalla completa")
+            .put("titulo", (link?.let { Link.sitio(it) + " " } ?: "Grabación ") + creadoLocal.replace('T', ' ').take(16))
+            .put("origen", "Android · ${Build.MANUFACTURER} ${Build.MODEL} · pantalla completa" + (link?.let { " · $it" } ?: ""))
             .put("audio", listOfNotNull(if (mic) "micrófono" else null, if (interno) "audio interno" else null).joinToString(" + ").ifEmpty { "sin audio" })
             .put("marcas", JSONArray(marcas.map { JSONObject().put("t", it.t).put("nota", it.nota) }))
         File(sesion, "sesion.json").writeText(j.toString())

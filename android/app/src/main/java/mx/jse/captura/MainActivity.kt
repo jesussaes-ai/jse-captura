@@ -33,6 +33,7 @@ import java.time.format.DateTimeFormatter
 class MainActivity : AppCompatActivity() {
     private lateinit var aj: Ajustes
     private lateinit var btnGrabar: android.widget.Button
+    private lateinit var campoLink: EditText
     private lateinit var estado: TextView
     private lateinit var resumen: TextView
     private lateinit var lista: RecyclerView
@@ -91,6 +92,22 @@ class MainActivity : AppCompatActivity() {
         cab.addView(resumen)
         cab.addView(btnGrabar, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT).apply { topMargin = Ui.dp(c, 8) })
         cab.addView(estado)
+
+        // ---- grabar desde un link ----
+        cab.addView(Ui.texto(c, "🔗 Grabar desde un link", 16f, Ui.TEXTO, true).apply { setPadding(0, Ui.dp(c, 14), 0, 0) })
+        cab.addView(Ui.texto(c, "Pega o escribe el link (YouTube, un curso…). Se abre solo y la grabación empieza a los 3 segundos.", 13f, Ui.SUTIL))
+        campoLink = EditText(c).apply {
+            hint = "https://…"; setTextColor(Ui.TEXTO); setHintTextColor(Ui.SUTIL); isSingleLine = true
+            inputType = android.text.InputType.TYPE_CLASS_TEXT or android.text.InputType.TYPE_TEXT_VARIATION_URI
+            imeOptions = android.view.inputmethod.EditorInfo.IME_ACTION_GO
+            contentDescription = "Link para grabar"
+            setOnEditorActionListener { _, a, _ -> if (a == android.view.inputmethod.EditorInfo.IME_ACTION_GO) { grabarLink(); true } else false }
+        }
+        cab.addView(campoLink)
+        cab.addView(Ui.fila(c,
+            Ui.boton(c, "📋 Pegar") { pegarLink() },
+            Ui.boton(c, "▶ Abrir y grabar", true) { grabarLink() }))
+        recibirLink(intent)
 
         // ---- biblioteca ----
         buscar = EditText(c).apply { hint = "Buscar por título, notas o etiquetas"; setTextColor(Ui.TEXTO); setHintTextColor(Ui.SUTIL)
@@ -151,6 +168,37 @@ class MainActivity : AppCompatActivity() {
             (if (aj.audioInterno) "\nAlgunas apps (Netflix, WhatsApp, llamadas) no permiten capturar su audio." else "") +
             (if (aj.microfono && aj.audioInterno) "\nCon micrófono y audio del teléfono a la vez: mejor con audífonos." else "") +
             (if (aj.botonFlotante) "\nPreparar → abre lo que quieras grabar → toca ● REC. Otra vez para detener." else "")
+    }
+
+    /** Un link compartido desde YouTube, el navegador u otra app («Compartir → JSE Captura») llena el campo. */
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        recibirLink(intent)
+    }
+
+    private fun recibirLink(i: Intent?) {
+        if (i?.action != Intent.ACTION_SEND) return
+        val t = i.getStringExtra(Intent.EXTRA_TEXT) ?: return
+        Link.extraer(t)?.let { campoLink.setText(it); estado.text = "Link recibido. Toca «▶ Abrir y grabar»." }
+    }
+
+    private fun pegarLink() {
+        val cm = getSystemService(android.content.ClipboardManager::class.java)
+        val t = cm?.primaryClip?.takeIf { it.itemCount > 0 }?.getItemAt(0)?.coerceToText(this)?.toString().orEmpty()
+        val l = Link.extraer(t)
+        if (l != null) campoLink.setText(l) else estado.text = "Lo copiado no tiene un link. Cópialo de nuevo (Compartir → Copiar enlace)."
+    }
+
+    private fun grabarLink() {
+        if (CapturaService.activo || CapturaService.preparado) { estado.text = "Ya hay una grabación en curso."; return }
+        val l = Link.extraer(campoLink.text.toString())
+        if (l == null) { estado.text = "Escribe o pega un link (debe empezar con http:// o https://)."; return }
+        CapturaService.ultimoError = null
+        if ((aj.microfono || aj.audioInterno) && checkSelfPermission(Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) { pedirAudio(); return }
+        irAlFondoAlPreparar = false
+        startActivity(Intent(this, PermisoCapturaActivity::class.java).putExtra(CapturaService.EXTRA_LINK, l))
+        h.postDelayed(reloj, 800)
     }
 
     private fun alternar() {

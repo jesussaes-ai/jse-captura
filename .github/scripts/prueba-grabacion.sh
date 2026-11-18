@@ -103,6 +103,30 @@ TAM=$(adb shell wm size | sed 's/.*: //' | tr -d '\r'); W=${TAM%x*}; H=${TAM#*x}
 sleep 1; volcar
 { c=$(centro "1:1" exacto) || c=$(centro "2×" exacto); } && adb shell input tap $c && { sleep 1; adb exec-out screencap -p > pantallas/5-tamano-original.png; bien "tamaño original 1:1"; } || true
 
+# 5) Grabar desde un link: compartir un link a la app, abrirlo y que grabe sola.
+adb shell input keyevent KEYCODE_BACK; sleep 1
+adb shell am start -W -a android.intent.action.SEND -t text/plain --es android.intent.extra.TEXT "'Mira este curso https://example.com/curso'" -n $P/.MainActivity >/dev/null; sleep 3
+volcar
+grep -q 'text="https://example.com/curso"' /tmp/g.xml && bien "link compartido llegó al campo" || { mal "el link compartido no llenó el campo"; grep -oE 'text="[^"]*"' /tmp/g.xml | head -30 | tr '\n' ' '; echo; }
+antes=$(adb shell "ls '$CARP'" | grep -c mp4)
+c=$(centro "▶ Abrir y grabar" exacto) || { adb shell input swipe $((W/2)) $((H*3/5)) $((W/2)) $((H*2/5)) 300; sleep 1; volcar; c=$(centro "▶ Abrir y grabar" exacto); }
+if [ -n "${c:-}" ]; then adb shell input tap $c; bien "toqué «Abrir y grabar»"; else mal "no encontré «Abrir y grabar»"; fi
+sleep 3; volcar
+for t in "Start now" "Iniciar ahora" "Start" "Iniciar"; do c=$(centro "$t" exacto) && { adb shell input tap $c; sleep 2; break; }; done
+sleep 7
+foco=$(adb shell dumpsys window | grep -m1 -E 'mCurrentFocus|mFocusedApp' | tr -d '\r')
+echo "en pantalla: $foco"
+echo "$foco" | grep -q "$P" && echo "• el link no abrió otra app (¿el emulador no tiene navegador?)" || bien "el link se abrió en otra app"
+adb shell dumpsys notification --noredact | grep -q 'Grabando la pantalla' && bien "empezó a grabar sola tras abrir el link" || { mal "no empezó a grabar con el link"; adb logcat -d | grep -E "JSECaptura" | tail -8; }
+pos=$(burbuja) && adb shell input tap $pos
+sleep 8; volcar
+c=$(centro "Guardar" exacto) || c=$(centro "GUARDAR" exacto) || c=""
+[ -n "$c" ] && adb shell input tap $c
+sleep 3
+despues=$(adb shell "ls '$CARP'" | grep -c mp4)
+nuevo=$(adb shell "ls '$CARP'" | tr -d '\r' | grep 'example.com' | head -1)
+[ "$despues" -gt "$antes" ] && [ -n "$nuevo" ] && bien "grabación del link guardada: $nuevo" || mal "no se guardó la grabación del link ($antes → $despues)"
+
 if ! adb shell pidof $P >/dev/null; then mal "la app se cerró"; fi
 adb logcat -d | grep -A25 "FATAL EXCEPTION" | head -50
 echo "---- registro de la app ----"

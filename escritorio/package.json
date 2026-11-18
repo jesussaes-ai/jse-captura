@@ -1,7 +1,7 @@
 {
   "name": "jse-captura",
   "productName": "JSE Captura",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Graba la pantalla de Windows en MP4 y la copia al NAS",
   "main": "src/main.js",
   "private": true,

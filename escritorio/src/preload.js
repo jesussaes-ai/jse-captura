@@ -2,7 +2,7 @@ const { contextBridge, ipcRenderer } = require('electron');
 const { pathToFileURL } = require('node:url');
 
 const invocar = (canal) => (datos) => ipcRenderer.invoke(canal, datos);
-const canales = ['fuentes', 'ajustes', 'ajustes:guardar', 'espacio', 'preparar', 'iniciar', 'marcar', 'detener', 'biblioteca', 'editar', 'borrar-local', 'borrar-nas', 'abrir', 'mostrar-carpeta', 'compartir', 'recortar', 'nas:vincular', 'nas:desvincular', 'nas:probar', 'nas:carpetas', 'nas:remoto', 'nas:enlace', 'nas:abrir-enlace', 'copiar-texto', 'sincronizar', 'elegir-carpeta'];
+const canales = ['fuentes', 'ajustes', 'ajustes:guardar', 'espacio', 'preparar', 'iniciar', 'marcar', 'detener', 'biblioteca', 'editar', 'borrar-local', 'borrar-nas', 'abrir', 'mostrar-carpeta', 'compartir', 'recortar', 'nas:vincular', 'nas:desvincular', 'nas:probar', 'nas:carpetas', 'nas:remoto', 'nas:enlace', 'nas:abrir-enlace', 'copiar-texto', 'sincronizar', 'elegir-carpeta', 'abrir-link', 'leer-portapapeles'];
 
 contextBridge.exposeInMainWorld('jse', {
   ...Object.fromEntries(canales.map((c) => [c.replace(/[:-](\w)/g, (_, l) => l.toUpperCase()), invocar(c)])),

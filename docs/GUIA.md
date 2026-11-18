@@ -30,6 +30,7 @@ Apple no permite instalar apps fuera de la App Store sin firmarlas, así que se 
   4. Mientras graba, el botón se vuelve un punto pequeño y transparente **■** (sale en el video, por eso es discreto). Tócalo para detener.
   5. Al detener te pregunta **el nombre del archivo**; el MP4 se guarda con ese nombre y después se copia al NAS.
   También puedes empezar o detener desde la notificación («● Empezar» / «■ Detener») o el mosaico de Ajustes rápidos.
+- **Grabar desde un link** (Android y Windows, v0.3.0): pega o escribe el link en «🔗 Grabar desde un link» (o en Android usa *Compartir → JSE Captura* desde YouTube o el navegador) y toca **▶ Abrir y grabar**. El link se abre solo y la grabación empieza a los 3 segundos; se detiene como siempre. En Android, la primera vez de cada sesión hay que aceptar «Iniciar ahora».
 - **Ver en grande (Android)**: toca la miniatura de la grabación. Se abre a pantalla completa; **1:1** o doble toque la muestra a su tamaño original, pellizca para acercar y arrastra para moverte (útil para tablas y cursos).
 - **Audio sin eco (Android)**: por defecto se graba el **audio del teléfono** (lo que suena) y el micrófono va apagado. Si enciendes el micrófono para narrar, se activa la cancelación de eco; con audífonos queda mejor.
 - **iPhone**: pulsa el botón rojo, elige «JSE Captura» y luego «Iniciar transmisión». Para detener toca la barra o burbuja roja de arriba. Al volver a la app, el MP4 aparece en la Biblioteca.

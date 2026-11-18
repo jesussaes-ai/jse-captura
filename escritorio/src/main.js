@@ -194,6 +194,18 @@ function marcar() {
   if (m) enviar('marca', m);
 }
 
+function normalizarLink(texto) {
+  let t = String(texto || '').trim();
+  if (!t) return null;
+  if (!/^[a-z][a-z0-9+.-]*:/i.test(t)) t = 'https://' + t;
+  try {
+    const u = new URL(t);
+    return u.protocol === 'http:' || u.protocol === 'https:' ? u.href : null;
+  } catch {
+    return null;
+  }
+}
+
 function nombrePantalla(d, i) {
   const principal = d.id === screen.getPrimaryDisplay().id;
   return `Pantalla ${i + 1}${principal ? ' (principal)' : ''} · ${d.size.width * d.scaleFactor}×${d.size.height * d.scaleFactor}`;
@@ -380,6 +392,15 @@ function manejadores() {
   ipcMain.handle('nas:enlace', (_e, id) => new ClienteNas({ direccion: ajustes.direccion, token: leerToken() }).enlace(id));
   ipcMain.handle('nas:abrir-enlace', async (_e, id) => shell.openExternal(await new ClienteNas({ direccion: ajustes.direccion, token: leerToken() }).enlace(id)));
   ipcMain.handle('copiar-texto', (_e, t) => clipboard.writeText(t));
+  ipcMain.handle('leer-portapapeles', () => clipboard.readText());
+  // Grabar desde un link: solo http(s); se abre en el navegador predeterminado y JSE Captura se hace a un lado.
+  ipcMain.handle('abrir-link', async (_e, url) => {
+    const u = normalizarLink(url);
+    if (!u) throw new Error('Ese texto no parece un link (debe empezar con http:// o https://).');
+    await shell.openExternal(u);
+    if (ventana && !ventana.isDestroyed()) ventana.minimize();
+    return u;
+  });
   ipcMain.handle('sincronizar', () => cola.sincronizarAhora());
   ipcMain.handle('elegir-carpeta', async () => {
     const r = await dialog.showOpenDialog(ventana, { properties: ['openDirectory', 'createDirectory'] });

@@ -85,6 +85,7 @@ class Burbuja(private val ctx: Context, private val alTocar: () -> Unit) {
 
     fun modoListo() = pintar("● REC", 64, 1f, Ui.ROJO, 13f)
     fun modoGrabando() = pintar("■", 38, 0.4f, Ui.ROJO, 14f)
+    fun cuenta(n: Int) = pintar("$n", 64, 1f, Ui.ROJO, 22f)
     fun modoGuardando() = pintar("…", 38, 0.6f, 0xFF555555.toInt(), 14f)
 
     fun quitar() {

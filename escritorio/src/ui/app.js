@@ -139,6 +139,34 @@ async function empezar(fuente) {
 }
 $('#btn-grabar').addEventListener('click', () => fuenteElegida && empezar(fuenteElegida));
 
+// ---------- grabar desde un link ----------
+$('#btn-pegar-link').addEventListener('click', async () => {
+  const t = (await jse.leerPortapapeles()) || '';
+  $('#op-link').value = t.trim();
+  $('#op-link').focus();
+});
+$('#op-link').addEventListener('keydown', (e) => e.key === 'Enter' && $('#btn-grabar-link').click());
+$('#btn-grabar-link').addEventListener('click', async () => {
+  if (grabador.recorder) return;
+  const texto = $('#op-link').value.trim();
+  if (!texto) return aviso('Pega o escribe primero el link que quieres grabar.', 'alerta');
+  // Siempre la pantalla completa: el navegador se abre ahí (una ventana elegida no incluiría la página nueva).
+  const fuentes = await jse.fuentes();
+  const fuente = (fuenteElegida?.tipo === 'pantalla' && fuenteElegida) || fuentes.find((f) => f.tipo === 'pantalla' && f.nombre.includes('principal')) || fuentes.find((f) => f.tipo === 'pantalla');
+  if (!fuente) return aviso('No encontré una pantalla para grabar.', 'error');
+  let url;
+  try {
+    url = await jse.abrirLink(texto);
+  } catch (e) {
+    return aviso(String(e.message || e).replace(/^Error invoking remote method '[^']+': (Error: )?/, ''), 'error');
+  }
+  if (!$('#op-titulo').value.trim()) {
+    try { $('#op-titulo').value = new URL(url).hostname.replace(/^www\./, ''); } catch {}
+  }
+  aviso('Abriendo el link… la grabación empieza en 3 segundos.', 'info', 3500);
+  setTimeout(() => empezar(fuente), 3000);
+});
+
 async function terminar() {
   if (!grabador.recorder) return;
   clearInterval(reloj);
