@@ -84,6 +84,8 @@ if ($SoloWindows) { exit 0 }
 
 # ---------------- Android (teléfonos por Tailscale) ----------------
 $adb = Join-Path $env:LOCALAPPDATA 'Android\Sdk\platform-tools\adb.exe'
+# Respaldo: copia de platform-tools junto a este script (la tarea programada no ve el SDK de carpetas virtuales MSIX).
+if (-not (Test-Path $adb)) { $adb = Join-Path $PSScriptRoot 'platform-tools\adb.exe' }
 if (-not (Test-Path $adb)) { $adb = 'adb' }
 $lista = Join-Path $Base 'equipos.txt'
 if (-not (Test-Path $lista)) { Log "• Falta $lista (Nombre=IP:5555 por renglón); no se revisan teléfonos."; exit 0 }
