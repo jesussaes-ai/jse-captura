@@ -51,13 +51,14 @@ n=$(adb shell "ls '/sdcard/Android/data/$P/files/Movies/JSE Captura' 2>/dev/null
 [ -n "${pos:-}" ] && { adb shell input tap $pos; bien "toqué ● REC"; }
 sleep 3
 volcar
-for t in "Start now" "Iniciar ahora" "Start" "Iniciar"; do c=$(centro "$t") && { adb shell input tap $c; sleep 3; break; }; done
+t0=$(date +%s)   # sin elegir app, la grabación empieza al aceptar «Iniciar ahora»
+for t in "Start now" "Iniciar ahora" "Start" "Iniciar"; do c=$(centro "$t") && { adb shell input tap $c; t0=$(date +%s); sleep 3; break; }; done
 volcar
 if grep -q 'text="Entire screen"\|text="Pantalla completa"\|text="A single app"' /tmp/g.xml; then
   c=$(centro "A single app") && { adb shell input tap $c; sleep 1; volcar; c=$(centro "Entire screen") && adb shell input tap $c; sleep 1; volcar; }
-  for t in "Start" "Next" "Iniciar"; do c=$(centro "$t") && { adb shell input tap $c; sleep 3; break; }; done
+  for t in "Start" "Next" "Iniciar"; do c=$(centro "$t") && { adb shell input tap $c; t0=$(date +%s); sleep 3; break; }; done
+  mal "todavía pide elegir la app (debía grabar la pantalla completa directo)"
 fi
-t0=$(date +%s)
 sleep 3
 adb exec-out screencap -p > pantallas/2-grabando.png
 adb shell dumpsys notification --noredact | grep -q 'Grabando la pantalla' && bien "graba de inmediato (notificación «Grabando»)" || { mal "no se ve la notificación de grabando"; adb shell dumpsys notification --noredact | grep -E "android.title|android.text" | head -20; }
