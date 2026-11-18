@@ -90,6 +90,7 @@ fi
 adb shell am start -W -n $P/.MainActivity >/dev/null; sleep 3
 volcar; grep -q 'text="Curso de prueba"' /tmp/g.xml && bien "la lista muestra «Curso de prueba»" || mal "la lista no muestra el nombre"
 tocar "Ver «Curso de prueba»" && sleep 4
+volcar; c=$(centro "Got it") && { adb shell input tap $c; sleep 1; bien "aviso de pantalla completa de Android cerrado"; }
 adb shell input keyevent KEYCODE_SPACE; sleep 2   # en pausa la pantalla queda quieta y se puede leer
 rm -f /tmp/g.xml; adb shell uiautomator dump /sdcard/ui.xml; adb pull /sdcard/ui.xml /tmp/g.xml >/dev/null 2>&1; grep -oE 'text="[^"]+"' /tmp/g.xml | head -12 | tr "\n" " "; echo; adb exec-out screencap -p > pantallas/4-pantalla-completa.png
 cp /tmp/g.xml pantallas/4-pantalla-completa.xml
