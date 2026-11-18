@@ -41,4 +41,15 @@ for act in MainActivity AjustesActivity NasActivity; do
   # La app no se cerró
   if ! adb shell pidof mx.jse.captura >/dev/null; then echo "✗ $act: la app se cerró"; adb logcat -d | grep -A20 "FATAL EXCEPTION" | head -40; fallos=1; fi
 done
+# Letra extra grande (como el teléfono de Remedios): la pantalla debe desplazarse y llegar a los filtros de la lista.
+adb shell settings put system font_scale 2.0; sleep 2
+adb shell am force-stop mx.jse.captura
+adb shell am start -W -n mx.jse.captura/.MainActivity >/dev/null; sleep 3
+adb exec-out screencap -p > pantallas/letra-grande-1.png
+TAM=$(adb shell wm size | sed 's/.*: //' | tr -d '\r'); W=${TAM%x*}; H=${TAM#*x}
+for i in 1 2 3; do adb shell input swipe $((W/2)) $((H*4/5)) $((W/2)) $((H/5)) 300; sleep 1; done
+adb exec-out screencap -p > pantallas/letra-grande-2.png
+adb shell uiautomator dump /sdcard/ui.xml >/dev/null; adb pull /sdcard/ui.xml pantallas/letra-grande.xml >/dev/null
+if grep -q 'text="Pendientes"' pantallas/letra-grande.xml; then echo "✓ letra grande: la pantalla se desplaza hasta la lista"; else echo "✗ letra grande: no se llega a la lista"; fallos=1; fi
+adb shell settings put system font_scale 1.0
 exit $fallos
