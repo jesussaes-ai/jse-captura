@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # Regla de Jesús: Android, Windows e iPhone llevan SIEMPRE el mismo número de versión.
 set -euo pipefail
+cd "$(dirname "$0")/../.."   # raíz del repo, sin importar desde dónde se llame
 A=$(grep -oE 'versionName = "[^"]+"' android/app/build.gradle.kts | cut -d'"' -f2)
 W=$(grep -m1 -oE '"version": "[^"]+"' escritorio/package.json | cut -d'"' -f4)
 V=$(tr -d " \r\n" < VERSION)

@@ -10,7 +10,7 @@ jobs:
       - uses: actions/checkout@v4
       - name: Misma versión en Android, Windows e iPhone
         shell: bash
-        run: bash .github/scripts/misma-version.sh
+        run: bash "$GITHUB_WORKSPACE/.github/scripts/misma-version.sh"
       - name: XcodeGen
         run: brew install xcodegen && cd ios && xcodegen generate
       - name: Compilar para el simulador (sin firma)
