@@ -57,7 +57,7 @@ class PantallaCompletaActivity : Activity() {
     private val h = Handler(Looper.getMainLooper())
     private val tic = object : Runnable {
         override fun run() {
-            mp?.let { if (!arrastrandoBarra && it.duration > 0) { barra.max = it.duration; barra.progress = it.currentPosition }; pintarTiempo() }
+            mp?.let { if (it.isPlaying && !arrastrandoBarra && it.duration > 0) { barra.max = it.duration; barra.progress = it.currentPosition; pintarTiempo() } }
             h.postDelayed(this, 250)
         }
     }
@@ -227,7 +227,8 @@ class PantallaCompletaActivity : Activity() {
     private fun pintarTiempo(pos: Int? = null) {
         val p = mp ?: return
         val d = runCatching { p.duration }.getOrDefault(0)
-        tiempo.text = "${Ui.duracion((pos ?: p.currentPosition) / 1000.0)} / ${Ui.duracion(d / 1000.0)}" + if (zoom > 1.01f) "  ·  ${"%.1f".format(zoom)}×" else ""
+        val t = "${Ui.duracion((pos ?: p.currentPosition) / 1000.0)} / ${Ui.duracion(d / 1000.0)}" + if (zoom > 1.01f) "  ·  ${"%.1f".format(zoom)}×" else ""
+        if (tiempo.text.toString() != t) tiempo.text = t
     }
 
     private fun mostrarControles(si: Boolean) {
@@ -260,6 +261,13 @@ class PantallaCompletaActivity : Activity() {
     override fun onWindowFocusChanged(hasFocus: Boolean) {
         super.onWindowFocusChanged(hasFocus)
         if (hasFocus) pantallaInmersiva()
+    }
+
+    /** Pausa/continúa con la barra espaciadora o el botón de reproducir de audífonos y teclados. */
+    override fun onKeyDown(keyCode: Int, event: android.view.KeyEvent): Boolean = when (keyCode) {
+        android.view.KeyEvent.KEYCODE_SPACE, android.view.KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE -> { alternarPlay(); mostrarControles(true); true }
+        android.view.KeyEvent.KEYCODE_MEDIA_PAUSE -> { mp?.let { if (it.isPlaying) alternarPlay() }; mostrarControles(true); true }
+        else -> super.onKeyDown(keyCode, event)
     }
 
     override fun onSaveInstanceState(out: Bundle) {

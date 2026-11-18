@@ -31,7 +31,7 @@ adb shell pm grant $P android.permission.RECORD_AUDIO || true
 adb shell am force-stop $P
 adb logcat -c
 adb shell am start -W -n $P/.MainActivity >/dev/null; sleep 3
-antes=$(biblioteca | grep -o '"id"' | wc -l)
+antes=$(adb shell "ls '/sdcard/Android/data/$P/files/Movies/JSE Captura' 2>/dev/null" | grep -c mp4)
 
 # 1) Preparar: acepta el permiso del sistema si aparece y debe quedar el botón flotante, sin grabar aún.
 tocar "● Preparar grabación"; sleep 3
@@ -45,7 +45,7 @@ fi
 adb exec-out screencap -p > pantallas/1-preparado.png
 pos=$(burbuja) && bien "botón flotante visible en ($pos)" || mal "no apareció el botón flotante"
 sleep 3
-n=$(biblioteca | grep -o '"id"' | wc -l)
+n=$(adb shell "ls '/sdcard/Android/data/$P/files/Movies/JSE Captura' 2>/dev/null" | grep -c mp4)
 [ "$n" = "$antes" ] && bien "preparado: todavía no se creó ninguna grabación" || mal "se creó una grabación antes de tocar ● REC"
 
 # 2) Ir a la pantalla de inicio (como al abrir YouTube) y empezar desde la burbuja.
@@ -71,15 +71,13 @@ if grep -q 'Cómo se llama esta grabación' /tmp/g.xml; then
   if [ -n "${c:-}" ]; then adb shell input tap $c; else adb shell input keyevent KEYCODE_ENTER; fi; sleep 3
 else mal "no apareció la ventana para poner el nombre"; fi
 
-j=$(biblioteca)
-echo "títulos: $(echo "$j" | grep -oE '"titulo":"[^"]*"' | tr '\n' ' ')"
-echo "$j" | grep -q '"titulo":"Curso de prueba"' && bien "guardada con el nombre «Curso de prueba»" || mal "el título no quedó como «Curso de prueba»"
-ruta=$(echo "$j" | grep -oE '"archivo":"[^"]*Curso de prueba\.mp4"' | head -1 | sed 's/"archivo":"//; s/"$//; s#\\/#/#g')
+CARP="/sdcard/Android/data/$P/files/Movies/JSE Captura"
+echo "archivos: $(adb shell "ls '$CARP'" | tr '\r\n' '  ')"
+ruta=$(adb shell "ls '$CARP'" | tr -d '\r' | grep 'Curso de prueba\.mp4$' | head -1)
 if [ -n "$ruta" ]; then
-  bien "archivo: $ruta"
-  adb shell "ls -l '$ruta'" || mal "el MP4 no existe"
-  adb pull "$ruta" pantallas/prueba.mp4 >/dev/null 2>&1 || true
-else mal "el MP4 no se renombró con el nombre"; fi
+  bien "MP4 guardado con el nombre: $ruta"
+  adb pull "$CARP/$ruta" pantallas/prueba.mp4 >/dev/null 2>&1 || true
+else mal "no hay un MP4 llamado «… Curso de prueba.mp4»"; fi
 if [ -s pantallas/prueba.mp4 ] && command -v ffprobe >/dev/null; then
   ffprobe -v error -show_entries stream=codec_name,width,height -show_entries format=duration -of compact pantallas/prueba.mp4 | tee /tmp/probe.txt
   grep -q 'codec_name=h264' /tmp/probe.txt && bien "video H.264" || mal "sin pista H.264"
@@ -90,13 +88,15 @@ fi
 
 # 4) Miniatura → pantalla completa con la versión.
 adb shell am start -W -n $P/.MainActivity >/dev/null; sleep 3
+volcar; grep -q 'text="Curso de prueba"' /tmp/g.xml && bien "la lista muestra «Curso de prueba»" || mal "la lista no muestra el nombre"
 tocar "Ver «Curso de prueba»" && sleep 4
-volcar; adb exec-out screencap -p > pantallas/4-pantalla-completa.png
+adb shell input keyevent KEYCODE_MEDIA_PAUSE; sleep 2   # en pausa la pantalla queda quieta y se puede leer
+rm -f /tmp/g.xml; volcar; adb exec-out screencap -p > pantallas/4-pantalla-completa.png
 cp /tmp/g.xml pantallas/4-pantalla-completa.xml
 grep -q "text=\"JSE Captura v$VER\"" /tmp/g.xml && bien "pantalla completa con v$VER" || mal "pantalla completa sin la versión"
 adb shell dumpsys activity activities | grep -q 'PantallaCompletaActivity' && bien "abrió la pantalla completa" || mal "no abrió la pantalla completa"
 TAM=$(adb shell wm size | sed 's/.*: //' | tr -d '\r'); W=${TAM%x*}; H=${TAM#*x}
-adb shell input tap $((W/2)) $((H/2)); sleep 1; volcar
+adb shell input keyevent KEYCODE_MEDIA_PAUSE; sleep 1; volcar
 tocar "1:1" && { sleep 1; adb exec-out screencap -p > pantallas/5-tamano-original.png; bien "tamaño original 1:1"; } || true
 
 if ! adb shell pidof $P >/dev/null; then mal "la app se cerró"; fi
