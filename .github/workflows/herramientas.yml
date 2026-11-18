@@ -1,0 +1,34 @@
+name: Auto-instalador · prueba
+on:
+  push:
+    branches: [main]
+    paths: ['herramientas/**', '.github/workflows/herramientas.yml']
+  workflow_dispatch:
+jobs:
+  autoinstalar:
+    # Corre el auto-instalador de verdad en un Windows limpio: debe bajar la última versión aprobada e instalarla.
+    runs-on: windows-latest
+    permissions: { actions: read, contents: read }
+    env: { GH_TOKEN: '${{ github.token }}' }
+    steps:
+      - uses: actions/checkout@v4
+      - name: Sintaxis de PowerShell
+        shell: pwsh
+        run: |
+          $e = $null; [System.Management.Automation.Language.Parser]::ParseFile("$PWD\herramientas\autoinstalar.ps1", [ref]$null, [ref]$e) | Out-Null
+          if ($e) { $e | ForEach-Object { Write-Host "✗ $($_.Extent.StartLineNumber): $($_.Message)" }; exit 1 }
+          Write-Host "✓ sin errores de sintaxis"
+      - name: Primera vuelta (instala)
+        shell: powershell
+        run: powershell -NoProfile -ExecutionPolicy Bypass -File herramientas\autoinstalar.ps1 -SoloWindows
+      - name: Comprobar versión instalada y segunda vuelta (no debe reinstalar)
+        shell: powershell
+        run: |
+          $exe = Get-ChildItem "$env:LOCALAPPDATA\Programs" -Recurse -Filter 'JSE Captura.exe' -ErrorAction SilentlyContinue | Select-Object -First 1
+          if (-not $exe) { Write-Host "✗ no quedó instalada"; Get-Content "$env:USERPROFILE\JSE\auto-instalador\registro.txt"; exit 1 }
+          Write-Host "✓ instalada: $($exe.FullName) v$($exe.VersionInfo.ProductVersion)"
+          powershell -NoProfile -ExecutionPolicy Bypass -File herramientas\autoinstalar.ps1 -SoloWindows
+          $r = Get-Content "$env:USERPROFILE\JSE\auto-instalador\registro.txt"; $r
+          if (($r | Select-String 'instalando').Count -ne 1) { Write-Host "✗ reinstaló sin versión nueva"; exit 1 }
+          if ($r | Select-String '✗') { exit 1 }
+          Write-Host "✓ segunda vuelta sin cambios"
