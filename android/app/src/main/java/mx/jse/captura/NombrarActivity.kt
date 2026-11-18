@@ -32,8 +32,10 @@ class NombrarActivity : Activity() {
         val g = Biblioteca.obtener(id) ?: return finish()
         val c = this
         val campo = EditText(c).apply {
-            setText(g.titulo); setSelectAllOnFocus(true); isSingleLine = true
-            imeOptions = EditorInfo.IME_ACTION_DONE; hint = "Nombre del archivo"
+            // Vacío, con el nombre automático como sugerencia: el teclado de Samsung reemplazaba solo una palabra
+            // del texto seleccionado y lo escrito quedaba pegado a la fecha («jesus2026-11-17 22_39»).
+            setText(""); isSingleLine = true
+            imeOptions = EditorInfo.IME_ACTION_DONE; hint = g.titulo
         }
         val caja = LinearLayout(c).apply {
             orientation = LinearLayout.VERTICAL
@@ -61,7 +63,7 @@ class NombrarActivity : Activity() {
         campo.requestFocus()
         // Algunos teléfonos (Samsung) no abren el teclado solos en una ventana que viene de segundo plano.
         campo.postDelayed({
-            campo.requestFocus(); campo.selectAll()
+            campo.requestFocus()
             getSystemService(android.view.inputmethod.InputMethodManager::class.java)?.showSoftInput(campo, android.view.inputmethod.InputMethodManager.SHOW_IMPLICIT)
         }, 350)
     }
