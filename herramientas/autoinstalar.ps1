@@ -12,6 +12,7 @@
 
   Archivos (en %USERPROFILE%\JSE\auto-instalador):
    - equipos.txt  : un teléfono por renglón:  Nombre=IP:5555   (ej. "S23 de Jesus=100.64.1.2:5555")
+                    o Nombre=serie-mDNS si el teléfono usa depuración inalámbrica sin puerto fijo
    - registro.txt : historial
   Nunca desinstala, nunca borra datos y no toca nada fuera de JSE Captura.
 
@@ -95,14 +96,24 @@ try {
   foreach ($renglon in Get-Content $lista -Encoding UTF8) {
     if ($renglon -notmatch '^\s*([^=#]+?)\s*=\s*(\S+)\s*$') { continue }
     $nombre = $Matches[1]; $dir_ = $Matches[2]
-    & $adb connect $dir_ 2>&1 | Out-Null
-    $estado = (& $adb -s $dir_ get-state 2>$null)
+    # IP:puerto -> se conecta con tiempo límite (un teléfono que no contesta no cuelga la vuelta).
+    # Otro texto (p. ej. «adb-R5CW…._adb-tls-connect._tcp») -> serie mDNS que adb ya ve sola.
+    if ($dir_ -match '^[\d\.]+:\d+$') {
+      $j = Start-Job { param($a, $d) & $a connect $d 2>&1 } -ArgumentList $adb, $dir_
+      if (-not (Wait-Job $j -Timeout 15)) { Stop-Job $j }
+      Remove-Job $j -Force
+    }
+    $j = Start-Job { param($a, $d) & $a -s $d get-state 2>$null } -ArgumentList $adb, $dir_
+    $estado = if (Wait-Job $j -Timeout 10) { (Receive-Job $j) -join '' } else { Stop-Job $j; '' }
+    Remove-Job $j -Force
+    $estado = "$estado".Trim()
     if ($estado -ne 'device') { continue }   # apagado, bloqueado o fuera de Tailscale: se reintenta en la siguiente vuelta
     $v = (& $adb -s $dir_ shell dumpsys package mx.jse.captura 2>$null | Select-String 'versionName=' | Select-Object -First 1)
     $actual = if ($v) { VersionDe "$v" } else { $null }
     if ($actual -and $actual -ge $nueva) { continue }
     Log "${nombre}: instalando $nueva (había $(if ($actual) { $actual } else { 'nada' }))…"
-    $out = (& $adb -s $dir_ install -r $apk.FullName 2>&1) -join ' '
+    # --user 0: el perfil principal (algunos teléfonos tienen perfiles extra, como la Carpeta segura).
+    $out = (& $adb -s $dir_ install -r --user 0 $apk.FullName 2>&1) -join ' '
     if ($out -match 'Success') { Log "✓ ${nombre}: JSE Captura $nueva instalada." } else { Log "✗ ${nombre}: $out" }
   }
 } catch { Log "✗ Android: $($_.Exception.Message)" }
