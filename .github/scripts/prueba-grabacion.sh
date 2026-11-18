@@ -99,7 +99,7 @@ grep -q "text=\"JSE Captura v$VER\"" /tmp/g.xml && bien "pantalla completa con v
 adb shell dumpsys activity activities | grep -q 'PantallaCompletaActivity' && bien "abrió la pantalla completa" || mal "no abrió la pantalla completa"
 TAM=$(adb shell wm size | sed 's/.*: //' | tr -d '\r'); W=${TAM%x*}; H=${TAM#*x}
 sleep 1; volcar
-{ tocar "1:1" || tocar "2×"; } && { sleep 1; adb exec-out screencap -p > pantallas/5-tamano-original.png; bien "tamaño original 1:1"; } || true
+{ c=$(centro "1:1" exacto) || c=$(centro "2×" exacto); } && adb shell input tap $c && { sleep 1; adb exec-out screencap -p > pantallas/5-tamano-original.png; bien "tamaño original 1:1"; } || true
 
 if ! adb shell pidof $P >/dev/null; then mal "la app se cerró"; fi
 adb logcat -d | grep -A25 "FATAL EXCEPTION" | head -50
