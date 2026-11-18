@@ -111,10 +111,11 @@ class Codificador(
 
         // ---- audio ----
         // Eco: si se graban a la vez el audio interno y el micrófono, el micrófono también oye la bocina y el
-        // sonido sale dos veces con retraso. Con ambos se usa la fuente de voz (cancelación de eco y ruido del
-        // teléfono); con solo micrófono, la fuente normal (mejor calidad).
+        // sonido sale dos veces con retraso. Con ambos se activan la cancelación de eco y de ruido del teléfono.
         if (microfono) {
-            val fuente = if (audioInterno) MediaRecorder.AudioSource.VOICE_COMMUNICATION else MediaRecorder.AudioSource.MIC
+            // Fuente normal del micrófono en todos los teléfonos: la de «voz» (llamada) en algunos Samsung cambia
+            // el modo de audio y baja o corta el sonido que se está grabando. La cancelación de eco va encima.
+            val fuente = MediaRecorder.AudioSource.MIC
             crearGrabador(fuente, null)?.let { r ->
                 grabadores.add(r)
                 if (audioInterno) limpiarVoz(r.audioSessionId)

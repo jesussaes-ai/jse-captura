@@ -11,8 +11,8 @@ android {
         applicationId = "mx.jse.captura"
         minSdk = 29          // Android 10: MediaProjection en servicio de primer plano y captura de audio interno
         targetSdk = 35
-        versionCode = 5
-        versionName = "0.2.0"
+        versionCode = 6
+        versionName = "0.2.1"
     }
 
     signingConfigs {

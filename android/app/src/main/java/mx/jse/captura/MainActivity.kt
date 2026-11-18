@@ -53,10 +53,18 @@ class MainActivity : AppCompatActivity() {
         aj = Ajustes(this)
         val c = this
         val raiz = Ui.columna(c).apply { setPadding(Ui.dp(c, 16), Ui.dp(c, 4), Ui.dp(c, 16), 0) }
+        // Todo lo de arriba va como encabezado de la lista: así la pantalla completa se desplaza junta
+        // aunque el teléfono tenga la letra grande (antes la lista quedaba atorada abajo).
+        val cab = Ui.columna(c)
 
-        raiz.addView(Ui.fila(c, Ui.texto(c, "● JSE Captura", 20f, Ui.ROJO, true),
-            Ui.boton(c, "NAS") { startActivity(Intent(c, NasActivity::class.java)) },
-            Ui.boton(c, "Ajustes") { startActivity(Intent(c, AjustesActivity::class.java)) }))
+        cab.addView(LinearLayout(c).apply {
+            orientation = LinearLayout.HORIZONTAL; gravity = android.view.Gravity.CENTER_VERTICAL
+            addView(Ui.texto(c, "● JSE Captura", 20f, Ui.ROJO, true).apply { maxLines = 1; ellipsize = android.text.TextUtils.TruncateAt.END },
+                LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f))
+            addView(Ui.boton(c, "NAS") { startActivity(Intent(c, NasActivity::class.java)) }.apply { maxLines = 1 })
+            addView(Ui.boton(c, "Ajustes") { startActivity(Intent(c, AjustesActivity::class.java)) }.apply { maxLines = 1 },
+                LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT).apply { marginStart = Ui.dp(c, 8) })
+        })
 
         // ---- grabar ----
         val calidad = RadioGroup(c).apply {
@@ -78,12 +86,11 @@ class MainActivity : AppCompatActivity() {
         resumen = Ui.texto(c, "", 13f, Ui.SUTIL)
         btnGrabar = Ui.boton(c, "● Grabar", true) { alternar() }.apply { textSize = 18f }
         estado = Ui.texto(c, "", 14f, Ui.TEXTO)
-        raiz.addView(calidad)
-        raiz.addView(Ui.fila(c, interno, mic))
-        raiz.addView(Ui.fila(c, flotante, nombre))
-        raiz.addView(resumen)
-        raiz.addView(btnGrabar, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT).apply { topMargin = Ui.dp(c, 8) })
-        raiz.addView(estado)
+        cab.addView(calidad)
+        cab.addView(interno); cab.addView(mic); cab.addView(flotante); cab.addView(nombre)
+        cab.addView(resumen)
+        cab.addView(btnGrabar, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT).apply { topMargin = Ui.dp(c, 8) })
+        cab.addView(estado)
 
         // ---- biblioteca ----
         buscar = EditText(c).apply { hint = "Buscar por título, notas o etiquetas"; setTextColor(Ui.TEXTO); setHintTextColor(Ui.SUTIL)
@@ -94,11 +101,12 @@ class MainActivity : AppCompatActivity() {
             }) }
         fPend = CheckBox(c).apply { text = "Pendientes"; setTextColor(Ui.TEXTO); setOnCheckedChangeListener { _, _ -> refrescar() } }
         fFav = CheckBox(c).apply { text = "★ Favoritos"; setTextColor(Ui.TEXTO); setOnCheckedChangeListener { _, _ -> refrescar() } }
-        raiz.addView(buscar)
-        raiz.addView(Ui.fila(c, fPend, fFav, Ui.boton(c, "⟳ Sincronizar") { Sincronizar.forzar(c); estado.text = "Sincronizando…" }))
+        cab.addView(buscar)
+        cab.addView(Ui.fila(c, fPend, fFav, Ui.boton(c, "⟳ Sincronizar") { Sincronizar.forzar(c); estado.text = "Sincronizando…" }))
         vacio = Ui.texto(c, "Aún no hay grabaciones. Toca Grabar, o usa el mosaico «JSE Captura» de Ajustes rápidos para grabar desde cualquier app.", 14f, Ui.SUTIL)
-        raiz.addView(vacio)
-        lista = RecyclerView(c).apply { layoutManager = LinearLayoutManager(c); adapter = adaptador }
+        cab.addView(vacio)
+        lista = RecyclerView(c).apply { layoutManager = LinearLayoutManager(c)
+            adapter = androidx.recyclerview.widget.ConcatAdapter(Cabecera(cab), adaptador) }
         raiz.addView(lista, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f))
         setContentView(Ui.conVersion(c, raiz))
 
@@ -141,8 +149,8 @@ class MainActivity : AppCompatActivity() {
         resumen.text = "Se grabará: pantalla (o la app que elijas en Android 14+) · ${if (aj.calidad == "720") "720p" else "hasta 1080p"} · 30 fps · " +
             (if (audio.isEmpty()) "🔇 sin audio" else "🔊 " + audio.joinToString(" + ")) +
             (if (aj.audioInterno) "\nAlgunas apps (Netflix, WhatsApp, llamadas) no permiten capturar su audio." else "") +
-            (if (aj.microfono && aj.audioInterno) "\nCon micrófono y audio del teléfono a la vez se activa la cancelación de eco; con audífonos se oye mejor." else "") +
-            (if (aj.botonFlotante) "\nCon botón flotante: Preparar → abre lo que quieras grabar → toca ● REC. Tócalo otra vez para detener." else "")
+            (if (aj.microfono && aj.audioInterno) "\nCon micrófono y audio del teléfono a la vez: mejor con audífonos." else "") +
+            (if (aj.botonFlotante) "\nPreparar → abre lo que quieras grabar → toca ● REC. Otra vez para detener." else "")
     }
 
     private fun alternar() {
@@ -194,6 +202,18 @@ class MainActivity : AppCompatActivity() {
         adaptador.items = l
         adaptador.notifyDataSetChanged()
     }
+
+    /** Encabezado fijo (controles de grabación y filtros) que se desplaza junto con la lista. */
+    class Cabecera(private val v: View) : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
+        override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): RecyclerView.ViewHolder {
+            v.layoutParams = RecyclerView.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT)
+            return object : RecyclerView.ViewHolder(v) {}
+        }
+        override fun getItemCount() = 1
+        override fun onBindViewHolder(holder: RecyclerView.ViewHolder, position: Int) {}
+    }
+
+    override fun attachBaseContext(base: android.content.Context) = super.attachBaseContext(Ui.letraLimitada(base))
 
     inner class Adaptador : RecyclerView.Adapter<Adaptador.VH>() {
         var items: List<Grabacion> = emptyList()

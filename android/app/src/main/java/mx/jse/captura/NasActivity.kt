@@ -14,6 +14,8 @@ class NasActivity : AppCompatActivity() {
     private lateinit var lista: LinearLayout
     private var pagina = 1
 
+    override fun attachBaseContext(base: android.content.Context) = super.attachBaseContext(Ui.letraLimitada(base))
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         val c = this

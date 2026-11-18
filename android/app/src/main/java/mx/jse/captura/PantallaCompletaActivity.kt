@@ -64,6 +64,8 @@ class PantallaCompletaActivity : Activity() {
     private val ocultar = Runnable { mostrarControles(false) }
 
     @SuppressLint("ClickableViewAccessibility")
+    override fun attachBaseContext(base: android.content.Context) = super.attachBaseContext(Ui.letraLimitada(base))
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         val g = Biblioteca.obtener(intent.getStringExtra("id") ?: "") ?: return finish()

@@ -24,6 +24,8 @@ class NombrarActivity : Activity() {
 
     private var listo = false
 
+    override fun attachBaseContext(base: android.content.Context) = super.attachBaseContext(Ui.letraLimitada(base))
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         val id = intent.getStringExtra("id") ?: return finish()
@@ -52,9 +54,16 @@ class NombrarActivity : Activity() {
             val enter = a == EditorInfo.IME_ACTION_DONE || (ev?.keyCode == android.view.KeyEvent.KEYCODE_ENTER && ev.action == android.view.KeyEvent.ACTION_DOWN)
             if (enter) { guardar(id, campo.text.toString(), false); d.dismiss(); true } else false }
         d.setOnDismissListener { if (!listo) guardar(id, "", false) }
-        d.window?.setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_STATE_VISIBLE)
+        // Un toque fuera de la ventana (fácil con el teclado abierto) ya no la cierra sin guardar el nombre.
+        d.setCanceledOnTouchOutside(false)
+        d.window?.setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_STATE_VISIBLE or WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE)
         d.show()
         campo.requestFocus()
+        // Algunos teléfonos (Samsung) no abren el teclado solos en una ventana que viene de segundo plano.
+        campo.postDelayed({
+            campo.requestFocus(); campo.selectAll()
+            getSystemService(android.view.inputmethod.InputMethodManager::class.java)?.showSoftInput(campo, android.view.inputmethod.InputMethodManager.SHOW_IMPLICIT)
+        }, 350)
     }
 
     private fun guardar(id: String, titulo: String, ver: Boolean) {

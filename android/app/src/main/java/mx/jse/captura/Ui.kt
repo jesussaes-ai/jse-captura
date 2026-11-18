@@ -84,6 +84,17 @@ object Ui {
         compoundDrawablePadding = dp(ctx, 5)
     }
 
+    /**
+     * La letra extra grande del teléfono (Ajustes → Pantalla → Tamaño de fuente) se limita a 1.3× dentro
+     * de la app: sigue siendo grande y legible, pero los botones y la lista ya no se aprietan ni se cortan.
+     */
+    fun letraLimitada(base: Context): Context {
+        val conf = android.content.res.Configuration(base.resources.configuration)
+        if (conf.fontScale <= 1.3f) return base
+        conf.fontScale = 1.3f
+        return base.createConfigurationContext(conf)
+    }
+
     fun columna(ctx: Context) = LinearLayout(ctx).apply { orientation = LinearLayout.VERTICAL }
 
     fun chip(ctx: Context, nombre: String, d: Destino?): TextView {

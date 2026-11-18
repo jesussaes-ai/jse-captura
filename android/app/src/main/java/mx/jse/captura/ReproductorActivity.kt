@@ -23,6 +23,8 @@ class ReproductorActivity : AppCompatActivity() {
     private lateinit var marcas: LinearLayout
     private lateinit var info: TextView
 
+    override fun attachBaseContext(base: android.content.Context) = super.attachBaseContext(Ui.letraLimitada(base))
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         g = Biblioteca.obtener(intent.getStringExtra("id") ?: "") ?: return finish()

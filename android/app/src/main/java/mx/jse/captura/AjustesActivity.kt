@@ -12,6 +12,8 @@ import androidx.appcompat.app.AppCompatActivity
 
 /** NAS (dirección, vincular con la cuenta de servicio, carpeta, probar conexión) y destinos. */
 class AjustesActivity : AppCompatActivity() {
+    override fun attachBaseContext(base: android.content.Context) = super.attachBaseContext(Ui.letraLimitada(base))
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         val c = this
