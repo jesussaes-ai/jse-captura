@@ -39,6 +39,7 @@ class Burbuja(private val ctx: Context, private val alTocar: () -> Unit) {
             contentDescription = "Botón de grabación de JSE Captura"
             setOnClickListener {
                 val ahora = SystemClock.elapsedRealtime()
+                android.util.Log.i("JSECaptura", "toque en la burbuja")
                 if (ahora - ultimoToque > 800) { ultimoToque = ahora; alTocar() }
             }
         }

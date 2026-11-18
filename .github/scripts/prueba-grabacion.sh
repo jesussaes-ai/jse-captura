@@ -54,7 +54,7 @@ pos=$(burbuja) && { adb shell input tap $pos; bien "toqué ● REC"; } || mal "s
 sleep 7
 adb exec-out screencap -p > pantallas/2-grabando.png
 dumpsys_n=$(adb shell dumpsys notification --noredact | grep -c 'Grabando la pantalla' || true)
-[ "$dumpsys_n" -gt 0 ] && bien "notificación «Grabando»" || mal "no se ve la notificación de grabando"
+[ "$dumpsys_n" -gt 0 ] && bien "notificación «Grabando»" || { mal "no se ve la notificación de grabando"; adb shell dumpsys notification --noredact | grep -E "mx.jse.captura|android.title|android.text" | head -20; }
 
 # 3) Detener desde la burbuja y poner nombre.
 pos=$(burbuja) && { adb shell input tap $pos; bien "toqué ■ para detener"; } || mal "sin burbuja para detener"
@@ -97,5 +97,6 @@ tocar "1:1" && { sleep 1; adb exec-out screencap -p > pantallas/5-tamano-origina
 
 if ! adb shell pidof $P >/dev/null; then mal "la app se cerró"; fi
 adb logcat -d | grep -A25 "FATAL EXCEPTION" | head -50
-adb logcat -d | grep -iE "JSECodificador|CapturaService|AndroidRuntime" | tail -30 > pantallas/logcat.txt
+echo "---- registro de la app ----"
+adb logcat -d | grep -E "JSECaptura|JSECodificador|AndroidRuntime|ActivityTaskManager.*(mx.jse|Background activity)|MediaProjection" | tail -60 | tee pantallas/logcat.txt
 exit $fallos

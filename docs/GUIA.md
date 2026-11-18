@@ -23,7 +23,15 @@ Apple no permite instalar apps fuera de la App Store sin firmarlas, así que se 
 
 ## 2. Primera grabación (sin NAS)
 - **Windows**: elige un monitor o una ventana, activa o desactiva el micrófono y el audio del sistema, y pulsa **● Grabar**. Mientras graba aparece un indicador flotante que no sale en el video. Atajos: `Ctrl+Shift+R` inicia o detiene la grabación y `Ctrl+Shift+M` marca un momento (se cambian en Ajustes).
-- **Android**: pulsa **● Grabar** y luego «Iniciar ahora». En Android 14+ puedes elegir una sola app. Para detener usa la notificación, el mosaico de Ajustes rápidos o la app.
+- **Android** (v0.2.0):
+  1. Pulsa **● Preparar grabación** y luego «Iniciar ahora». Todavía no graba nada.
+  2. La primera vez, Android pide «Mostrar sobre otras apps» para el botón flotante: actívalo y regresa.
+  3. La app se hace a un lado. Abre lo que quieras grabar (YouTube, el curso…) y toca el botón rojo flotante **● REC**: ahí empieza.
+  4. Mientras graba, el botón se vuelve un punto pequeño y transparente **■** (sale en el video, por eso es discreto). Tócalo para detener.
+  5. Al detener te pregunta **el nombre del archivo**; el MP4 se guarda con ese nombre y después se copia al NAS.
+  También puedes empezar o detener desde la notificación («● Empezar» / «■ Detener») o el mosaico de Ajustes rápidos.
+- **Ver en grande (Android)**: toca la miniatura de la grabación. Se abre a pantalla completa; **1:1** o doble toque la muestra a su tamaño original, pellizca para acercar y arrastra para moverte (útil para tablas y cursos).
+- **Audio sin eco (Android)**: por defecto se graba el **audio del teléfono** (lo que suena) y el micrófono va apagado. Si enciendes el micrófono para narrar, se activa la cancelación de eco; con audífonos queda mejor.
 - **iPhone**: pulsa el botón rojo, elige «JSE Captura» y luego «Iniciar transmisión». Para detener toca la barra o burbuja roja de arriba. Al volver a la app, el MP4 aparece en la Biblioteca.
 
 El MP4 se guarda en el equipo:
@@ -80,6 +88,8 @@ Leyenda: ✅ verificado · 🧪 implementado, falta probar en el equipo real · 
 | Función | Windows | Android | iPhone | NAS |
 |---|---|---|---|---|
 | Grabar pantalla completa | ✅ (en tu PC: H.264 1728×1080) | 🧪 | 🧪 | — |
+| Botón flotante (empieza al tocarlo) | — | 🧪 (probado en emulador) | — | — |
+| Pedir nombre al terminar / pantalla completa 1:1 | — | 🧪 (probado en emulador) | — | — |
 | Elegir monitor o ventana / app | ✅ monitor · 🧪 ventana | 🧪 (Android 14+) | — (iOS solo pantalla completa) | — |
 | Micrófono / audio interno | 🧪 | 🧪 | 🧪 (micrófono en 2.ª pista) | — |
 | MP4 H.264/AAC con faststart (VLC, mpv) | ✅ (decodificado con ffmpeg) | 🧪 | 🧪 | ✅ valida con ffprobe |

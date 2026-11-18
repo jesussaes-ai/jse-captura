@@ -81,6 +81,7 @@ class CapturaService : Service() {
     override fun onBind(intent: Intent?): IBinder? = null
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+        android.util.Log.i("JSECaptura", "acción=${intent?.action} activo=$activo preparado=$preparado")
         when (intent?.action) {
             ACCION_INICIAR -> iniciar(intent)
             ACCION_DETENER -> terminar()
@@ -152,6 +153,7 @@ class CapturaService : Service() {
         }
         ultimoError = cod!!.avisoAudio
         preparado = true
+        android.util.Log.i("JSECaptura", "preparado ${w}x$h mic=$mic interno=$interno burbuja=${aj.botonFlotante}")
         if (aj.botonFlotante) {
             // Queda listo: la grabación empieza cuando tocas el botón flotante (o «Empezar» en la notificación).
             burbuja = Burbuja(this) { if (preparado) empezar() else if (activo) terminar() }
@@ -164,6 +166,7 @@ class CapturaService : Service() {
 
     /** Empieza a escribir el video desde este instante. */
     private fun empezar() {
+        android.util.Log.i("JSECaptura", "empezar preparado=$preparado activo=$activo")
         if (!preparado || activo) return
         cod?.empezar()
         preparado = false
@@ -204,6 +207,7 @@ class CapturaService : Service() {
     }
 
     private fun terminar() {
+        android.util.Log.i("JSECaptura", "terminar activo=$activo preparado=$preparado deteniendo=$deteniendo")
         if (preparado && !activo && !deteniendo) { cancelar(); return }
         if (!activo || deteniendo) { if (!activo && !deteniendo) pararServicio(); return }
         deteniendo = true
@@ -217,13 +221,14 @@ class CapturaService : Service() {
             runCatching { proyeccion?.stop() }
             activo = false
             val g = Recuperacion.finalizarSesion(this, s, recuperada = false)
+            android.util.Log.i("JSECaptura", "finalizada=${g?.id} segmentos=${c.segmentos.map { it.name + ":" + it.length() }}")
             if (g != null) {
                 val nombrar = NombrarActivity.intent(this, g.id)
                 Ui.avisoSistema(this, "Grabación guardada", "${g.titulo} · ${Ui.duracion(g.duracion)} · toca para ponerle nombre",
                     PendingIntent.getActivity(this, g.id.hashCode(), nombrar, PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT))
                 // Se pide el nombre antes de copiar al NAS. El botón flotante sigue visible en este momento, lo que
                 // permite a Android 15 abrir la ventana desde segundo plano.
-                val pidio = Ajustes(this).pedirNombre && runCatching { startActivity(nombrar) }.isSuccess
+                val pidio = Ajustes(this).pedirNombre && runCatching { startActivity(nombrar) }.onFailure { android.util.Log.w("JSECaptura", "nombrar", it) }.isSuccess
                 if (!pidio) Sincronizar.ahora(this)
             } else ultimoError = ultimoError ?: "No se pudo guardar la grabación. Los segmentos quedaron en la carpeta Grabando."
             manejador.postDelayed({ burbuja?.quitar(); burbuja = null; pararServicio() }, 1200)
