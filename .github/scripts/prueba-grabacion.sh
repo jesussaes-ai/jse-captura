@@ -67,7 +67,7 @@ if grep -q 'Cómo se llama esta grabación' /tmp/g.xml; then
   set -- $c; adb shell input tap $(( ($1+$3)/2 )) $(( ($2+$4)/2 ))
   adb shell input keyevent KEYCODE_MOVE_END; for i in $(seq 1 60); do adb shell input keyevent KEYCODE_DEL; done
   adb shell input text "Curso%sde%sprueba"; sleep 1
-  volcar; c=$(centro "Guardar") || c=$(centro "GUARDAR") || { adb shell input keyevent KEYCODE_ESCAPE; sleep 1; volcar; c=$(centro "Guardar") || c=$(centro "GUARDAR"); }
+  volcar; c=$(centro "Guardar") || c=$(centro "GUARDAR") || c=""
   if [ -n "${c:-}" ]; then adb shell input tap $c; else adb shell input keyevent KEYCODE_ENTER; fi; sleep 3
 else mal "no apareció la ventana para poner el nombre"; fi
 
