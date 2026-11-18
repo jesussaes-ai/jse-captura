@@ -48,8 +48,9 @@ sleep 3
 n=$(biblioteca | grep -o '"id"' | wc -l)
 [ "$n" = "$antes" ] && bien "preparado: todavía no se creó ninguna grabación" || mal "se creó una grabación antes de tocar ● REC"
 
-# 2) Abrir otra app (Ajustes de Android) y empezar desde la burbuja.
-adb shell am start -W -a android.settings.SETTINGS >/dev/null; sleep 2
+# 2) Ir a la pantalla de inicio (como al abrir YouTube) y empezar desde la burbuja.
+#    Ojo: la app Ajustes de Android oculta a propósito los botones flotantes de todas las apps (anti-engaños).
+adb shell input keyevent KEYCODE_HOME; sleep 2
 pos=$(burbuja) && { adb shell input tap $pos; bien "toqué ● REC"; } || mal "sin burbuja para empezar"
 sleep 7
 adb exec-out screencap -p > pantallas/2-grabando.png
